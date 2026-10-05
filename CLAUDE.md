@@ -5,7 +5,7 @@ Private, single-owner vocabulary-learning **PWA** (iPhone-first, works on deskto
 ## Start every session here
 
 1. Read this file.
-2. Read the active plan: `work/active/*/plan.md` → take the first unchecked step.
+2. Read the active plan: `work/active/*/plan.md` → take the first unchecked step. No active plan → the MVP is done (`work/archive/001-vocabulary-pwa-mvp/`); new work starts as `work/active/002-<slug>/` with `brief.md` + `plan.md` (see workflow.md).
 3. Read the relevant sections of **`docs/SPEC.md` — the source of truth for product behavior and technical design.**
 4. Follow the session protocol in `docs/conventions/workflow.md` (create `step-NN-*.md` next to `plan.md`, ask the owner when blocked on their action, verify, tick the step, commit).
 

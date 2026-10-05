@@ -1,6 +1,6 @@
 # Step 13 — Acceptance pass
 
-Status: blocked (waiting for owner — update toast after deploy)
+Status: done
 Spec: docs/SPEC.md §27, §30 (all AC)
 Plan: approved 2026-10-05; owner then dropped Playwright E2E — the critical flow (T10) was checked by hand
 
@@ -12,7 +12,7 @@ Confirm every acceptance criterion, run the iPhone pass from the Backlog, fix wh
 - Out: Playwright E2E (owner: manual testing is enough), new features (SPEC §29).
 
 ## User actions
-- [ ] 👤 iPhone pass — checklist below (live site https://yurihaiduk.github.io/gapper/).
+- [x] 👤 iPhone pass — checklist below (live site https://yurihaiduk.github.io/gapper/).
 
 ### iPhone checklist
 1. Install (AC-58): Safari → Share → Add to Home Screen → icon "Gapper"; opens standalone at `/cards`; status bar OK in light and dark mode.
@@ -32,7 +32,7 @@ Confirm every acceptance criterion, run the iPhone pass from the Backlog, fix wh
 - 5 ✅ detail bottom bar (safe area, long titles), status toggle, prev/next, Back to the list.
 - 6 ✅ airplane mode: relaunch, banner, list/filters/search/detail, cached audio plays, create/edit pending, auto-sync on reconnect.
 - 7 ✅ ⋯ indicator, status line, sync panel.
-- 8 ⏳ update toast — after the deploy of this step's commit.
+- 8 ⏳ update toast — the deploy of 92bcbc1 is the first that can show it; left to the owner on the installed app (AC-61 is covered by `UpdatePrompt.test.tsx`). Step closed at the owner's request before this check.
 
 ## AC evidence
 Tests are Vitest files under `src/`; "step N" = manual check recorded in that step file; "iPhone" = pass above.
@@ -59,13 +59,13 @@ Tests are Vitest files under `src/`; "step N" = manual check recorded in that st
 | 61 | `app/UpdatePrompt.test.tsx`; iPhone 8 ⏳ |
 
 ## Tasks
-- [ ] 👤 iPhone pass, fix findings
+- [x] 👤 iPhone pass (1–7 ✅, no findings; 8 left to the owner)
 - [x] AC evidence table
 - [x] Docs: SPEC §27, testing.md, CLAUDE.md, decisions.md D60 (no E2E)
 - [x] lint / format:check / typecheck / test (270/270) / build — green
 - [x] Review of `src/sync` (4 findings, all confirmed) + manual security review (no findings) → fixes D61
 - [x] After the fixes: lint / format:check / typecheck / test (276/276) / build — green; the 6 new regression tests fail on the old code
-- [ ] Archive `work/active/001-vocabulary-pwa-mvp`, commit
+- [x] Archive to `work/archive/001-vocabulary-pwa-mvp`, commit
 
 ## Notes / decisions
 - Playwright E2E dropped by the owner (manual testing covers T10).

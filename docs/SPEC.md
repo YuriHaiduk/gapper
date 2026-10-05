@@ -996,7 +996,7 @@ See `docs/conventions/testing.md` for rules. Coverage priorities:
 
 **Not in MVP:** see §29.
 
-Implementation order: `work/active/001-vocabulary-pwa-mvp/plan.md`.
+Implementation order: `work/archive/001-vocabulary-pwa-mvp/plan.md` (done).
 
 ## 29. Future improvements
 
