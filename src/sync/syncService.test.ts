@@ -6,7 +6,7 @@ import { getCategory, saveCategory } from '@/repositories/local/categoriesLocalR
 import { getMeta, setMeta } from '@/repositories/local/metaRepo';
 import { countAll, countFailed, enqueue } from '@/repositories/local/outboxRepo';
 import { RemoteError } from '@/repositories/remote/errors';
-import { createCard, updateCard } from '@/services/cardService';
+import { createCard, deleteCard, updateCard } from '@/services/cardService';
 import { FakeServer } from '@/test/fakeRemote';
 import { makeCard, makeCategory, makeOther, OTHER_ID, USER_ID } from '@/test/factories';
 import { createSyncService, type SyncService } from './syncService';
@@ -431,5 +431,76 @@ describe('audio (SPEC §10.3, §10.4)', () => {
     await service.sync();
 
     expect(await db.audio_blobs.count()).toBe(0);
+  });
+});
+
+describe('audio deletes follow the card the server kept (D61)', () => {
+  const recorded = (text: string) => ({ blob: new Blob([text]), mime: 'audio/mp4' });
+
+  beforeEach(async () => {
+    await setMeta('user_id', USER_ID);
+  });
+
+  /** A synced card with a recording, as on both devices. */
+  async function syncedCardWithAudio() {
+    const card = await createCard({ title: 'abandon' }, recorded('one'));
+    await service.sync();
+    server.calls = [];
+    return { id: card.id, path: card.audio_path ?? '' };
+  }
+
+  it('keeps the folder when the server kept a newer edit of a card deleted here', async () => {
+    const { id, path } = await syncedCardWithAudio();
+    await deleteCard(id);
+    // Device B edited the card later than this device deleted it.
+    const live = server.cards.get(id);
+    if (!live) throw new Error('card not on the server');
+    server.seedCard({ ...live, title: 'edited on B', updated_at: '2099-01-01T00:00:00.000Z' });
+
+    expect((await service.sync()).status).toBe('ok');
+
+    expect(server.cards.get(id)?.deleted_at).toBeNull();
+    expect(server.audio.has(path)).toBe(true);
+    expect(pushCalls().some((call) => call.startsWith('remove:'))).toBe(false);
+    expect((await getCard(id))?.title).toBe('edited on B');
+    expect(await countAll()).toBe(0);
+  });
+
+  it('keeps the old recording when the server skipped the replacing edit as stale', async () => {
+    const { id, path } = await syncedCardWithAudio();
+    const replaced = await updateCard(
+      id,
+      { title: 'abandon' },
+      { kind: 'replace', audio: recorded('two') },
+    );
+    const live = server.cards.get(id);
+    if (!live) throw new Error('card not on the server');
+    server.seedCard({ ...live, title: 'edited on B', updated_at: '2099-01-01T00:00:00.000Z' });
+
+    await service.sync();
+
+    expect(server.cards.get(id)?.audio_path).toBe(path);
+    expect(server.audio.has(path)).toBe(true);
+    expect((await getCard(id))?.audio_path).toBe(path);
+    expect(server.audio.has(replaced.audio_path ?? '')).toBe(true); // orphan, harmless
+    expect(await countAll()).toBe(0);
+  });
+
+  it('waits while the card push is rejected, then deletes after it lands', async () => {
+    const { id, path } = await syncedCardWithAudio();
+    await deleteCard(id);
+    server.failNext = {
+      error: new RemoteError('rejected', 'check violation', '23514'),
+      match: `upsert:card:${id}`,
+    };
+
+    expect(await service.sync()).toMatchObject({ status: 'ok', pushed: 0, rejected: 1 });
+    expect(server.audio.has(path)).toBe(true);
+    expect(await countAll()).toBe(2);
+
+    await service.sync();
+    expect(server.cards.get(id)?.deleted_at).not.toBeNull();
+    expect(server.audio.has(path)).toBe(false);
+    expect(await countAll()).toBe(0);
   });
 });

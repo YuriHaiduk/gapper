@@ -2,6 +2,7 @@ import { LIMITS, PULL_OVERLAP_MS, PULL_PAGE_SIZE } from '@/domain/constants';
 import { uniqueSlug, slugify } from '@/domain/slugify';
 import { nowIso, toIso } from '@/domain/timestamps';
 import type { Card, Category, MetaKey, OutboxEntry } from '@/domain/types';
+import { inLocalTransaction } from '@/db/database';
 import { baseMime } from '@/domain/audio';
 import {
   getAudioBlob,
@@ -62,7 +63,8 @@ export type SyncService = {
 /** Push passes per run: a pass is repeated only when a row was edited while being pushed. */
 const MAX_PUSH_PASSES = 3;
 
-type PushOutcome = 'done' | 'again';
+/** `wait` keeps the entry for a later pass/run without counting it as pushed. */
+type PushOutcome = 'done' | 'again' | 'wait';
 
 class StopSync extends Error {
   readonly status: SyncStatus;
@@ -127,11 +129,13 @@ export function createSyncService(remote: SyncRemote): SyncService {
     }
     // `null` = the LWW trigger skipped a stale write → the server copy wins (SPEC §15.3).
     const server = (await table.upsert(local)) ?? (await table.getById(local.id));
-    const current = await getLocal(local.id);
-    if (current && current.updated_at !== local.updated_at) return 'again';
-    if (server) await apply(server);
-    await removeEntry(entry.id);
-    return 'done';
+    return inLocalTransaction(async (): Promise<PushOutcome> => {
+      const current = await getLocal(local.id);
+      if (current && current.updated_at !== local.updated_at) return 'again';
+      if (server) await apply(server);
+      await removeEntry(entry.id);
+      return 'done';
+    });
   }
 
   async function pushCategory(entry: OutboxEntry): Promise<PushOutcome> {
@@ -154,15 +158,33 @@ export function createSyncService(remote: SyncRemote): SyncService {
     }
   }
 
+  /**
+   * An audio delete (`<user>/<card>/<file>` or the folder `<user>/<card>/`) waits until its
+   * card's push has landed, and is dropped without touching Storage when the card — as the
+   * server returned it — still uses the file, e.g. the server kept a newer edit from another
+   * device (D61).
+   */
+  async function pushAudioDelete(entry: OutboxEntry): Promise<PushOutcome> {
+    const target = entry.entity_id;
+    const cardId = target.split('/')[1] ?? '';
+    if (await hasPending('card', cardId)) return 'wait';
+    const card = await getCard(cardId);
+    const inUse =
+      card !== undefined &&
+      card.deleted_at === null &&
+      card.audio_path !== null &&
+      (target.endsWith('/') ? card.audio_path.startsWith(target) : card.audio_path === target);
+    if (!inUse) await remote.audio.remove(target);
+    await removeEntry(entry.id);
+    return 'done';
+  }
+
   async function pushAudio(entry: OutboxEntry): Promise<PushOutcome> {
-    if (entry.op === 'upload') {
-      const audio = await getAudioBlob(entry.entity_id);
-      if (audio) {
-        await remote.audio.upload(audio.path, audio.blob, baseMime(audio.mime));
-        await markAudioUploaded(audio.path);
-      }
-    } else {
-      await remote.audio.remove(entry.entity_id);
+    if (entry.op !== 'upload') return pushAudioDelete(entry);
+    const audio = await getAudioBlob(entry.entity_id);
+    if (audio) {
+      await remote.audio.upload(audio.path, audio.blob, baseMime(audio.mime));
+      await markAudioUploaded(audio.path);
     }
     await removeEntry(entry.id);
     return 'done';
@@ -183,8 +205,9 @@ export function createSyncService(remote: SyncRemote): SyncService {
         // Entry may have been removed meanwhile (e.g. discarded by the user).
         if (!(await getEntry(entry.id))) continue;
         try {
-          if ((await pushEntry(entry)) === 'again') again = true;
-          else result.pushed++;
+          const outcome = await pushEntry(entry);
+          if (outcome === 'again') again = true;
+          else if (outcome === 'done') result.pushed++;
         } catch (error) {
           const status = stopStatus(error);
           if (status) throw new StopSync(status);
@@ -213,10 +236,14 @@ export function createSyncService(remote: SyncRemote): SyncService {
     for (;;) {
       const rows = await table.pullSince(since, PULL_PAGE_SIZE);
       for (const row of rows) {
-        // A pending local change wins locally; the server decides via LWW on push.
-        if (await hasPending(entity, row.id)) continue;
-        await apply(row);
-        result.pulled++;
+        // A pending local change wins locally; the server decides via LWW on push. One
+        // transaction, so an edit saved between the check and the write isn't overwritten.
+        const applied = await inLocalTransaction(async () => {
+          if (await hasPending(entity, row.id)) return false;
+          await apply(row);
+          return true;
+        });
+        if (applied) result.pulled++;
       }
       const last = rows.at(-1);
       if (!last) return;

@@ -30,11 +30,15 @@ function Status() {
 
 function renderProvider(
   authValue: AuthContextValue = auth,
-  { result = OK, periodMs = 60_000 }: { result?: SyncResult; periodMs?: number } = {},
+  {
+    result = OK,
+    periodMs = 60_000,
+    whenIdle = () => Promise.resolve(),
+  }: { result?: SyncResult; periodMs?: number; whenIdle?: SyncService['whenIdle'] } = {},
 ) {
   const service = {
     sync: vi.fn<SyncService['sync']>(() => Promise.resolve(result)),
-    whenIdle: vi.fn<SyncService['whenIdle']>(() => Promise.resolve()),
+    whenIdle: vi.fn<SyncService['whenIdle']>(whenIdle),
     discard: vi.fn<SyncService['discard']>(),
     downloadAudio: vi.fn<SyncService['downloadAudio']>(),
   };
@@ -92,6 +96,56 @@ describe('SyncProvider', () => {
       { timeout: WRITE_SYNC_DELAY_MS + 1000 },
     );
     expect(Date.now() - start).toBeGreaterThanOrEqual(WRITE_SYNC_DELAY_MS - 50);
+  });
+
+  it('syncs 2 s after an edit of a row that is already pending (D61)', async () => {
+    const service = renderProvider();
+    await vi.waitFor(() => {
+      expect(service.sync).toHaveBeenCalledTimes(1);
+    });
+    await act(() => saveCard(makeCard()));
+    await vi.waitFor(
+      () => {
+        expect(service.sync).toHaveBeenCalledTimes(2);
+      },
+      { timeout: WRITE_SYNC_DELAY_MS + 1000 },
+    );
+
+    // The fake sync pushed nothing, so the entry is still pending: the count stays at 1.
+    await act(() =>
+      saveCard(makeCard({ title: 'edited', updated_at: '2026-02-01T00:00:00.000Z' })),
+    );
+    await vi.waitFor(
+      () => {
+        expect(service.sync).toHaveBeenCalledTimes(3);
+      },
+      { timeout: WRITE_SYNC_DELAY_MS + 1000 },
+    );
+    expect(await screen.findByText('pending 1')).toBeInTheDocument();
+  });
+
+  it("starts no sync before another user's local data is wiped (D61)", async () => {
+    await setMeta('user_id', 'someone-else');
+    // A previous run is still finishing, so the wipe waits; triggers fire meanwhile.
+    let finishRun: () => void = () => undefined;
+    const running = new Promise<void>((resolve) => {
+      finishRun = resolve;
+    });
+    const service = renderProvider(auth, { whenIdle: () => running });
+    await vi.waitFor(() => {
+      expect(service.whenIdle).toHaveBeenCalled();
+    });
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(service.sync).not.toHaveBeenCalled();
+
+    finishRun();
+    await vi.waitFor(() => {
+      expect(service.sync).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('wipes local data of another user before the first sync (D51)', async () => {

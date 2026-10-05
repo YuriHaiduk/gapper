@@ -3,12 +3,27 @@ import { MAX_PUSH_ATTEMPTS } from '@/domain/constants';
 import { nowIso } from '@/domain/timestamps';
 import type { OutboxEntity, OutboxEntry, OutboxOp } from '@/domain/types';
 
+const enqueueListeners = new Set<() => void>();
+
+/**
+ * Subscribes to local writes that need a sync — every `enqueue`, including edits that
+ * coalesce into an existing entry (the outbox count doesn't change then). Returns an
+ * unsubscribe function.
+ */
+export function onEnqueue(listener: () => void): () => void {
+  enqueueListeners.add(listener);
+  return () => {
+    enqueueListeners.delete(listener);
+  };
+}
+
 /**
  * Appends an outbox entry. Call inside the same Dexie transaction as the row write.
  * An identical pending entry is reused (edits coalesce, payload is read at push time);
  * a failed one is re-armed because the new edit may fix the rejection.
  */
 export async function enqueue(entity: OutboxEntity, op: OutboxOp, entityId: string): Promise<void> {
+  for (const listener of enqueueListeners) listener();
   const existing = await db.outbox
     .where('[entity+entity_id]')
     .equals([entity, entityId])

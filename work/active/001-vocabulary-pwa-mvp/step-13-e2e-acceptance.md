@@ -63,7 +63,11 @@ Tests are Vitest files under `src/`; "step N" = manual check recorded in that st
 - [x] AC evidence table
 - [x] Docs: SPEC §27, testing.md, CLAUDE.md, decisions.md D60 (no E2E)
 - [x] lint / format:check / typecheck / test (270/270) / build — green
+- [x] Review of `src/sync` (4 findings, all confirmed) + manual security review (no findings) → fixes D61
+- [x] After the fixes: lint / format:check / typecheck / test (276/276) / build — green; the 6 new regression tests fail on the old code
 - [ ] Archive `work/active/001-vocabulary-pwa-mvp`, commit
 
 ## Notes / decisions
 - Playwright E2E dropped by the owner (manual testing covers T10).
+- Security review (manual; `/security-review` only sees the diff vs origin): RLS + grants, Other protection, cross-user category refs, storage folder policies, trigger `search_path`, no `innerHTML`, own notes renderer, `safeRedirect`, CSP, no keys in git — no findings.
+- `/code-review src/sync` findings, fixed (D61): audio delete vs. a card the server kept; check/write-back race in push and pull (transaction); 2 s trigger missed coalesced edits (`onEnqueue`); sync could start between `whenIdle` and the user-switch wipe (`readyFor` gate). A pull-race regression test was tried but could not reproduce the race deterministically without deadlocking, so only the push race has a test.

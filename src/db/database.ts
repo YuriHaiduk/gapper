@@ -63,6 +63,14 @@ export class GapperDb extends Dexie {
 
 export const db = new GapperDb();
 
+/**
+ * Runs `fn` in one read-write transaction over every table. Sync uses it for check-then-write
+ * steps, so a user edit saved meanwhile waits until the write-back is committed (D61).
+ */
+export function inLocalTransaction<T>(fn: () => Promise<T>): Promise<T> {
+  return db.transaction('rw', db.tables, fn);
+}
+
 /** Empties every table: sign-out, a different user signing in (D49), tests. */
 export async function wipeLocalData(): Promise<void> {
   await db.transaction('rw', db.tables, async () => {

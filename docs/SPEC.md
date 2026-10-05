@@ -387,7 +387,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
                  2. pull: delta by server_updated_at per table
 ```
 
-Triggers: after sign-in / app start with session; `online` event; `visibilitychange` → visible; 2 s after the last local write (debounced); "Sync now" menu item; every 5 min while visible and online.
+Triggers: after sign-in / app start with session; `online` event; `visibilitychange` → visible; 2 s after the last local write (debounced; every outbox enqueue counts, including edits coalesced into a pending entry); "Sync now" menu item; every 5 min while visible and online.
 
 ### 15.2 Outbox
 
@@ -396,6 +396,8 @@ Dexie table `outbox`: `{ id (auto-increment), entity: 'category'|'card'|'audio',
 - Payload for `upsert` is read from the current local row at push time — consecutive edits of one row coalesce (enqueue skips if an identical pending `entity+op+entity_id` exists).
 - Processing order is by **phase**, FIFO within a phase: categories → audio uploads → card upserts (incl. tombstones) → audio deletes. This preserves dependencies (category before the card that uses it; audio upload before card upsert; card upsert before old-audio delete) even when coalescing keeps an older entry for an edited row (D27).
 - An `audio:delete` entry whose `entity_id` ends in `/` (`<user_id>/<card_id>/`) removes every object in that folder (card deletion, §10.3).
+- An `audio:delete` waits while its card still has a pending/failed entry, and is dropped without touching Storage when the card as the server returned it still references the file (the server kept a newer edit from another device) (D61).
+- Write-back after a push and applying a pulled row run in one Dexie transaction with their "edited meanwhile?" / "pending?" check, so a user save can't land in between (D61).
 - After a successful upsert the entry is removed and the server row written back **only if** the local row's `updated_at` is unchanged; if the user edited the row while the request was in flight, the entry stays and is pushed again (D28).
 - A new edit of a row whose entry has failed re-arms that entry (`attempts = 0`).
 - On success the entry is removed. On network error: stop the push loop (retry next trigger). On a server rejection (constraint/RLS error): increment `attempts`, store `last_error`, continue with the next entry; after 5 attempts the entry is shown as failed in the sync status panel with "Retry" / "Discard".
