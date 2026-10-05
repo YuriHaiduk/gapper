@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { SplashScreen } from './SplashScreen';
 
-/** Layout route guarding every protected page (SPEC §9). */
+/** Layout route guarding every protected page (SPEC §9); an expired session gets through (D50). */
 export function RequireAuth() {
   const { status } = useAuth();
   const { pathname, search } = useLocation();

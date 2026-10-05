@@ -30,7 +30,7 @@ export async function enqueue(entity: OutboxEntity, op: OutboxOp, entityId: stri
   });
 }
 
-/** Entries the push loop should try, oldest first. Failed entries wait for Retry (step 10). */
+/** Entries the push loop should try, oldest first. Failed entries wait for Retry. */
 export function listPending(): Promise<OutboxEntry[]> {
   return db.outbox.filter((entry) => entry.attempts < MAX_PUSH_ATTEMPTS).toArray();
 }
@@ -70,4 +70,14 @@ export function countAll(): Promise<number> {
 
 export function countFailed(): Promise<number> {
   return db.outbox.filter((entry) => entry.attempts >= MAX_PUSH_ATTEMPTS).count();
+}
+
+/** Entries rejected `MAX_PUSH_ATTEMPTS` times, oldest first (sync status panel, SPEC §15.2). */
+export function listFailed(): Promise<OutboxEntry[]> {
+  return db.outbox.filter((entry) => entry.attempts >= MAX_PUSH_ATTEMPTS).toArray();
+}
+
+/** Retry: the entry is pushed again on the next sync. */
+export async function rearm(id: number): Promise<void> {
+  await db.outbox.update(id, { attempts: 0, last_error: null });
 }

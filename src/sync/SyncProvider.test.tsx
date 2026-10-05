@@ -1,8 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '@/auth/authContext';
-import { getMeta } from '@/repositories/local/metaRepo';
-import { saveCard } from '@/repositories/local/cardsLocalRepo';
+import { getMeta, setMeta } from '@/repositories/local/metaRepo';
+import { getCard, saveCard } from '@/repositories/local/cardsLocalRepo';
 import { makeCard, USER_ID } from '@/test/factories';
 import { SyncProvider, WRITE_SYNC_DELAY_MS } from './SyncProvider';
 import type { SyncResult, SyncService } from './syncService';
@@ -15,21 +15,32 @@ const auth: AuthContextValue = {
   user: { id: USER_ID, email: 'owner@example.com' },
   signIn: () => Promise.resolve({ ok: true }),
   signOut: () => Promise.resolve(),
+  expireSession: () => Promise.resolve(),
 };
 
 function Status() {
-  const { pendingCount } = useSyncStatus();
-  return <p>pending {pendingCount}</p>;
+  const { pendingCount, sessionExpired } = useSyncStatus();
+  return (
+    <p>
+      pending {pendingCount}
+      {sessionExpired && ' expired'}
+    </p>
+  );
 }
 
-function renderProvider(authValue: AuthContextValue = auth) {
+function renderProvider(
+  authValue: AuthContextValue = auth,
+  { result = OK, periodMs = 60_000 }: { result?: SyncResult; periodMs?: number } = {},
+) {
   const service = {
-    sync: vi.fn<SyncService['sync']>(() => Promise.resolve(OK)),
+    sync: vi.fn<SyncService['sync']>(() => Promise.resolve(result)),
+    whenIdle: vi.fn<SyncService['whenIdle']>(() => Promise.resolve()),
+    discard: vi.fn<SyncService['discard']>(),
     downloadAudio: vi.fn<SyncService['downloadAudio']>(),
   };
   render(
     <AuthContext value={authValue}>
-      <SyncProvider service={service}>
+      <SyncProvider service={service} periodMs={periodMs}>
         <Status />
       </SyncProvider>
     </AuthContext>,
@@ -81,5 +92,48 @@ describe('SyncProvider', () => {
       { timeout: WRITE_SYNC_DELAY_MS + 1000 },
     );
     expect(Date.now() - start).toBeGreaterThanOrEqual(WRITE_SYNC_DELAY_MS - 50);
+  });
+
+  it('wipes local data of another user before the first sync (D51)', async () => {
+    await setMeta('user_id', 'someone-else');
+    await saveCard(makeCard({ id: 'theirs' }));
+    const service = renderProvider();
+    await vi.waitFor(() => {
+      expect(service.sync).toHaveBeenCalledTimes(1);
+    });
+    expect(await getCard('theirs')).toBeUndefined();
+    expect(await getMeta('user_id')).toBe(USER_ID);
+  });
+
+  it('keeps local data of the same user', async () => {
+    await setMeta('user_id', USER_ID);
+    await saveCard(makeCard({ id: 'mine' }));
+    const service = renderProvider();
+    await vi.waitFor(() => {
+      expect(service.sync).toHaveBeenCalledTimes(1);
+    });
+    expect(await getCard('mine')).toBeDefined();
+  });
+
+  it('syncs periodically while visible', async () => {
+    const service = renderProvider(auth, { periodMs: 50 });
+    await vi.waitFor(() => {
+      expect(service.sync.mock.calls.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  it('does not sync with an expired session and reports it (D50)', async () => {
+    const service = renderProvider({ ...auth, status: 'expired' }, { periodMs: 20 });
+    await screen.findByText(/expired/);
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(service.sync).not.toHaveBeenCalled();
+  });
+
+  it('reports a session the API rejected', async () => {
+    renderProvider(auth, { result: { ...OK, status: 'auth_error' } });
+    expect(await screen.findByText(/expired/)).toBeInTheDocument();
   });
 });

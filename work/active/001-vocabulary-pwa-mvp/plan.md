@@ -17,7 +17,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **07a. Notes field (rich text)** — owner change: Translation / Example sentence / Example translation → one rich-text `notes` field (Tiptap: bold, italic, bullet/numbered lists); migration merges + drops old columns, Dexie v2, search, list preview, safe renderer. → [step file](step-07a-notes-field.md)
 - [x] **08. Card detail & prev/next** — CardDetailPage, status toggle, useAdjacentCards (keyset neighbours), AdjacentNav, keyboard ←/→, replace navigation. AC-25…AC-34. SPEC §7.5, §13. → [step file](step-08-card-detail.md)
 - [x] **09. Audio** — useAudioRecorder (mime selection, 60 s cap, cleanup), AudioRecorder UI, audio_blobs, audioService, upload/delete via outbox, AudioPlayer with download+cache. 👤 test recording on iPhone (after step 12, or via tunnel). AC-38…AC-43. SPEC §10, §19. → [step file](step-09-audio.md)
-- [ ] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25.
+- [x] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25. → [step file](step-10-offline-sync-ux.md)
 - [ ] **11. PWA** — vite-plugin-pwa config, icons via assets generator, iOS meta tags, update toast (`prompt`), 404.html copy, optional CSP meta. AC-58, AC-61. SPEC §22.
 - [ ] **12. 👤 Deployment** — Owner: create GitHub repo `gapper`, push, set Actions variables, Pages source = GitHub Actions, Supabase Site URL. Claude: `deploy.yml`, optional keep-alive workflow, dist secret grep. AC-56, AC-59, AC-60.
 - [ ] **13. E2E & acceptance pass** — Playwright critical flow (T10), walk through all AC in SPEC §30 (👤 owner checks on iPhone), fix gaps, update docs, archive this folder.
@@ -26,15 +26,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 _(items discovered during work that are not yet scheduled)_
 
 - Bundle is ~669 kB min / 198 kB gzip after step 06 (was ~544 kB at step 03) in one chunk (mostly supabase-js) → Vite warns >500 kB. Decide in step 11: lazy-load routes / split vendor chunk, or raise `chunkSizeWarningLimit`.
-- Offline cold start with an *expired* access token: confirm supabase-js still emits the stored session (SPEC §9 "opens offline with last session"); if it emits `null`, handle in step 10.
-
-- Different user signs in on a device with local data → wipe Dexie first (SPEC §9). `meta.user_id` is written by `SyncProvider` since step 04; the comparison + wipe belongs to step 10.
 - Step 11: make sure the lazy `NotesEditor` chunk is precached by the service worker (form must open offline).
 - 👤 iPhone check of the filter `<dialog>` bottom sheet (iOS Safari) and of the card detail bottom bar (safe area, long neighbour titles, toggle width on a 375 px screen).
 - 👤 iPhone check of the notes editor: toolbar taps keep the keyboard, lists via toolbar and `- `, paste from Notes/Safari.
+- 👤 iPhone check of the sync UX (after step 12): ⋯ indicator, status line, sync panel bottom sheet, session banner; offline relaunch of the installed app with an expired access token opens with local data.
 - 👤 iPhone check of audio (after step 12): recording in Safari and the installed PWA (permission re-prompt in standalone is expected), m4a playback, 60 s auto-stop, Stop button reach, playback of a desktop (webm) recording if mp4 wasn't available there.
 - Step 11: the service worker must not cache Supabase Storage downloads (audio is cached in IndexedDB already).
-- Sync status UI: `useSyncStatus()` already exposes `syncing`, `lastResult`, `lastSyncAt`, `pendingCount`, `failedCount`, `initialSyncDone` — header indicator/panel in step 10; list "Loading your cards…" uses `initialSyncDone` in step 06.
 
 ## Open questions
 _(none yet)_

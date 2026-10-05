@@ -63,8 +63,8 @@ export class GapperDb extends Dexie {
 
 export const db = new GapperDb();
 
-/** Empties every table (tests; logout wipe in step 10 deletes the whole database). */
-export async function clearDb(): Promise<void> {
+/** Empties every table: sign-out, a different user signing in (D49), tests. */
+export async function wipeLocalData(): Promise<void> {
   await db.transaction('rw', db.tables, async () => {
     await Promise.all(db.tables.map((table) => table.clear()));
   });

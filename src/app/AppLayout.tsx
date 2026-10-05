@@ -4,6 +4,7 @@ import { HeaderRow } from '@/components/ui/HeaderRow';
 import { ICON_BUTTON } from '@/components/ui/styles';
 import { OfflineBanner } from './OfflineBanner';
 import { OverflowMenu } from './OverflowMenu';
+import { SessionBanner } from './SessionBanner';
 
 export type BackContext = { params: Params; search: string };
 
@@ -19,7 +20,7 @@ function isRouteHandle(value: unknown): value is RouteHandle {
   return typeof value === 'object' && value !== null;
 }
 
-/** Shell for protected pages: sticky safe-area header, offline banner, page outlet. */
+/** Shell for protected pages: sticky safe-area header, offline/session banners, page outlet. */
 export function AppLayout() {
   const matches = useMatches();
   const { search } = useLocation();
@@ -55,6 +56,7 @@ export function AppLayout() {
         )}
       </header>
       <OfflineBanner />
+      <SessionBanner />
       <main className="mx-auto w-full max-w-2xl flex-1 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]">
         <Outlet />
       </main>

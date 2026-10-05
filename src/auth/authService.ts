@@ -1,9 +1,15 @@
-import { isAuthApiError, isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
+import {
+  isAuthApiError,
+  isAuthRetryableFetchError,
+  type AuthChangeEvent,
+  type Session,
+} from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase';
 
 export type AuthUser = { id: string; email: string | null };
 export type SignInError = 'invalid_credentials' | 'offline' | 'unknown';
 export type SignInResult = { ok: true } | { ok: false; error: SignInError };
+export type AuthEvent = AuthChangeEvent;
 
 function toUser(session: Session | null): AuthUser | null {
   return session ? { id: session.user.id, email: session.user.email ?? null } : null;
@@ -19,10 +25,12 @@ export function mapSignInError(error: unknown, online: boolean): SignInError {
  * Subscribes to auth state. The first call delivers the locally persisted session
  * (`INITIAL_SESSION`), so the app can start offline. Returns an unsubscribe function.
  */
-export function onAuthChange(listener: (user: AuthUser | null) => void): () => void {
+export function onAuthChange(
+  listener: (event: AuthEvent, user: AuthUser | null) => void,
+): () => void {
   // Sync callback on purpose: async callbacks are deprecated (deadlock risk on refresh).
-  const { data } = getSupabase().auth.onAuthStateChange((_event, session) => {
-    listener(toUser(session));
+  const { data } = getSupabase().auth.onAuthStateChange((event, session) => {
+    listener(event, toUser(session));
   });
   return () => {
     data.subscription.unsubscribe();

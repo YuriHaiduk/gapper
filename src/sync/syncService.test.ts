@@ -287,6 +287,72 @@ describe('single flight', () => {
   });
 });
 
+describe('whenIdle', () => {
+  it('resolves after the running sync and its follow-up', async () => {
+    await saveCard(makeCard());
+    const runs = [service.sync(), service.sync()];
+    let settled = 0;
+    for (const run of runs) void run.then(() => settled++);
+    await service.whenIdle();
+    expect(settled).toBe(2);
+    await service.whenIdle(); // idle: resolves at once
+  });
+});
+
+describe('discard (D53)', () => {
+  /** Parks the card's entry as failed. */
+  async function failCard(id: string): Promise<number> {
+    const [entry] = await db.outbox.where('[entity+entity_id]').equals(['card', id]).toArray();
+    if (!entry) throw new Error('no entry');
+    await db.outbox.update(entry.id, { attempts: 5, last_error: 'check violation' });
+    return entry.id;
+  }
+
+  it('restores the server copy of a rejected edit', async () => {
+    server.seedCard(makeCard({ id: 'card-1', title: 'server' }));
+    await saveCard(makeCard({ id: 'card-1', title: 'local', updated_at: later(5) }));
+    await service.discard(await failCard('card-1'));
+    expect(await countAll()).toBe(0);
+    expect(await getCard('card-1')).toMatchObject({ title: 'server' });
+  });
+
+  it('removes a row the server never got', async () => {
+    await saveCard(makeCard({ id: 'card-1' }));
+    await service.discard(await failCard('card-1'));
+    expect(await countAll()).toBe(0);
+    expect(await getCard('card-1')).toBeUndefined();
+  });
+
+  it('moves cards of a discarded new category to Other', async () => {
+    await saveCategory(makeCategory({ id: 'cat-new', name: 'Idioms', slug: 'idioms' }));
+    await saveCard(makeCard({ id: 'card-1', category_id: 'cat-new' }));
+    const [entry] = await db.outbox
+      .where('[entity+entity_id]')
+      .equals(['category', 'cat-new'])
+      .toArray();
+    await service.discard(entry?.id ?? -1);
+    expect(await getCategory('cat-new')).toBeUndefined();
+    expect(await getCard('card-1')).toMatchObject({ category_id: OTHER_ID });
+  });
+
+  it('drops an audio entry without touching rows', async () => {
+    await enqueue('audio', 'delete', `${USER_ID}/card-1/old.m4a`);
+    const [entry] = await db.outbox.toArray();
+    await service.discard(entry?.id ?? -1);
+    expect(await countAll()).toBe(0);
+    expect(server.calls).toEqual([]);
+  });
+
+  it('keeps the entry when the server is unreachable', async () => {
+    await saveCard(makeCard({ id: 'card-1' }));
+    const id = await failCard('card-1');
+    server.failNext = { error: new RemoteError('network', 'Failed to fetch') };
+    await expect(service.discard(id)).rejects.toThrow(RemoteError);
+    expect(await countAll()).toBe(1);
+    expect(await getCard('card-1')).toBeDefined();
+  });
+});
+
 describe('audio (SPEC §10.3, §10.4)', () => {
   const recorded = (text: string) => ({ blob: new Blob([text]), mime: 'audio/mp4' });
 

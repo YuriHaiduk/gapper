@@ -5,14 +5,18 @@ import { routes } from '@/app/router';
 import { AuthContext, type AuthContextValue, type AuthState } from '@/auth/authContext';
 import type { SignInResult } from '@/auth/authService';
 import { SyncProvider } from '@/sync/SyncProvider';
+import { USER_ID } from './factories';
 import type { SyncService } from '@/sync/syncService';
 
-export const TEST_USER = { id: 'user-1', email: 'owner@example.com' };
+/** Same id as the factories' rows, so `SyncProvider` sees the local data as this user's (D51). */
+export const TEST_USER = { id: USER_ID, email: 'owner@example.com' };
 const BASENAME = '/gapper/';
 
 /** Sync service stand-in: never touches the network. */
 export const fakeSyncService: SyncService = {
   sync: () => Promise.resolve({ status: 'ok', pushed: 0, pulled: 0, rejected: 0 }),
+  whenIdle: () => Promise.resolve(),
+  discard: () => Promise.resolve(),
   downloadAudio: () => Promise.reject(new Error('fakeSyncService: no audio')),
 };
 
@@ -27,7 +31,9 @@ function FakeAuthProvider({ initialStatus, signIn, children }: FakeAuthProps) {
   const [state, setState] = useState<AuthState>(
     initialStatus === 'signed_in'
       ? { status: 'signed_in', user: TEST_USER }
-      : { status: initialStatus, user: null },
+      : initialStatus === 'expired'
+        ? { status: 'expired', user: TEST_USER }
+        : { status: initialStatus, user: null },
   );
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -42,6 +48,10 @@ function FakeAuthProvider({ initialStatus, signIn, children }: FakeAuthProps) {
       },
       signOut: () => {
         setState({ status: 'signed_out', user: null });
+        return Promise.resolve();
+      },
+      expireSession: () => {
+        setState({ status: 'expired', user: TEST_USER });
         return Promise.resolve();
       },
     }),

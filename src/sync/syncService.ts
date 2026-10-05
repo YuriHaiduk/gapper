@@ -48,6 +48,13 @@ export type SyncResult = {
 
 export type SyncService = {
   sync(): Promise<SyncResult>;
+  /** Resolves when no run is active or queued (before wiping local data, D49). */
+  whenIdle: () => Promise<void>;
+  /**
+   * Drops a failed outbox entry and restores the server's copy of its row; a row the server
+   * never got is removed locally (D53). Throws a `RemoteError` when offline.
+   */
+  discard: (entryId: number) => Promise<void>;
   /** Downloads a recording and caches it locally for offline playback (SPEC §10.4, D47). */
   downloadAudio: (path: string, cardId: string) => Promise<Blob>;
 };
@@ -85,14 +92,15 @@ function collisionName(name: string, taken: ReadonlySet<string>): string {
 export function createSyncService(remote: SyncRemote): SyncService {
   // --- applying server truth locally ------------------------------------------
 
-  async function applyCategory(row: Category): Promise<void> {
-    if (row.deleted_at === null) {
-      await applyRemoteCategory(row);
-      return;
-    }
+  async function dropCategory(id: string): Promise<void> {
     const other = await getOtherCategory();
-    if (other) await reassignCategory(row.id, other.id);
-    await removeCategory(row.id);
+    if (other) await reassignCategory(id, other.id);
+    await removeCategory(id);
+  }
+
+  async function applyCategory(row: Category): Promise<void> {
+    if (row.deleted_at === null) await applyRemoteCategory(row);
+    else await dropCategory(row.id);
   }
 
   async function applyCard(row: Card): Promise<void> {
@@ -264,11 +272,35 @@ export function createSyncService(remote: SyncRemote): SyncService {
     return queued;
   }
 
+  async function whenIdle(): Promise<void> {
+    while (running ?? queued) {
+      await (queued ?? running);
+    }
+  }
+
+  async function discard(entryId: number): Promise<void> {
+    const entry = await getEntry(entryId);
+    if (!entry) return;
+    if (entry.entity === 'category') {
+      const server = await remote.categories.getById(entry.entity_id);
+      await removeEntry(entry.id);
+      if (server) await applyCategory(server);
+      else await dropCategory(entry.entity_id);
+    } else if (entry.entity === 'card') {
+      const server = await remote.cards.getById(entry.entity_id);
+      await removeEntry(entry.id);
+      if (server) await applyCard(server);
+      else await removeCard(entry.entity_id);
+    } else {
+      await removeEntry(entry.id);
+    }
+  }
+
   async function downloadAudio(path: string, cardId: string): Promise<Blob> {
     const blob = await remote.audio.download(path);
     await putCachedAudio({ path, card_id: cardId, blob, mime: blob.type, created_at: nowIso() });
     return blob;
   }
 
-  return { sync, downloadAudio };
+  return { sync, whenIdle, discard, downloadAudio };
 }

@@ -20,3 +20,5 @@ export const OTHER_SLUG = 'other';
 export const MAX_PUSH_ATTEMPTS = 5;
 export const PULL_PAGE_SIZE = 500;
 export const PULL_OVERLAP_MS = 60_000;
+/** Periodic sync while the app is visible and online (SPEC §15.1). */
+export const PERIODIC_SYNC_MS = 5 * 60_000;

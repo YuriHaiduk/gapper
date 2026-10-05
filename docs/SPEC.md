@@ -86,8 +86,9 @@ All routes live under the base path `/gapper/` (see §21).
 ### App shell
 
 - **Header** (sticky, safe-area aware): left = context/back control, center = page title or filter button, right = overflow menu (⋯).
-- **Overflow menu** (all protected pages): `Categories`, `Sync now` (shows last sync time / pending count), `Sign out`.
-- **Offline banner** under the header when `navigator.onLine === false` (§25).
+- **Overflow menu** (all protected pages): sync status line (§15.6; `Sync error — details` opens the sync panel), `Sync now`, `Categories`, `Sign out`. The ⋯ button carries the sync indicator: a gray dot while changes are pending, a filled `!` badge when entries failed (D52).
+- **Offline banner** under the header when `navigator.onLine === false` (§25): `Offline — N changes pending`, or `Offline — changes will sync later` when nothing is pending.
+- **Session banner** under it when the session expired (§9): `⚠ Session expired — Sign in again`.
 - **Update toast** when a new service worker is waiting: "New version available · Reload".
 
 ### Visual style — monochrome (rule)
@@ -243,8 +244,8 @@ Server guarantees (triggers, §17): a card can never reference a deleted categor
 - **Route guard** `RequireAuth`: while auth state initializes → full-screen splash (logo + spinner); no session → redirect to `/login?redirect=<path+query>`; after login → redirect to `redirect` (only same-app relative paths are accepted) or `/cards`.
 - Signed-in user opening `/login` → redirect to `/cards`.
 - **Token refresh failing for network reasons** → keep working offline; sync paused.
-- **Session invalid (refresh rejected / 401 after refresh)** → banner "Session expired — Sign in again"; local data and outbox are kept; after signing in as the same user, sync resumes. If a different user signs in, local data is wiped first.
-- **Sign out**: if the outbox is not empty → confirm "You have N unsynced changes. Signing out will discard them." Then `auth.signOut()`, delete the Dexie database, revoke object URLs, navigate to `/login`.
+- **Session invalid (refresh rejected / 401 after refresh)** → auth state `expired` (D50): supabase-js drops a session whose refresh token is rejected and emits `SIGNED_OUT`; a `SIGNED_OUT` the owner didn't start means *expired*, not *signed out*. While expired the app stays usable on local data (the guard lets it through, writes go to the outbox), sync is paused, and the banner "Session expired — Sign in again" links to `/login?redirect=<current path>`. A 401 from the API while supabase-js still holds a session shows the same banner; its button ends that session locally first. Local data and outbox are kept; after signing in as the same user, sync resumes. If a different user signs in, local data is wiped first (`meta.user_id` is compared on start, D51). A refresh that fails for network reasons keeps the stored session (supabase-js), so the app opens offline with it.
+- **Sign out**: if the outbox is not empty → confirm "You have N unsynced changes. Signing out will discard them." (native `confirm`, D32). Then `auth.signOut()`, wait for a running sync to finish, empty every Dexie table (D49 — the database stays open for mounted live queries), navigate to `/login`. Object URLs are revoked by the unmounting players.
 
 ## 10. Audio recording
 
@@ -398,6 +399,7 @@ Dexie table `outbox`: `{ id (auto-increment), entity: 'category'|'card'|'audio',
 - After a successful upsert the entry is removed and the server row written back **only if** the local row's `updated_at` is unchanged; if the user edited the row while the request was in flight, the entry stays and is pushed again (D28).
 - A new edit of a row whose entry has failed re-arms that entry (`attempts = 0`).
 - On success the entry is removed. On network error: stop the push loop (retry next trigger). On a server rejection (constraint/RLS error): increment `attempts`, store `last_error`, continue with the next entry; after 5 attempts the entry is shown as failed in the sync status panel with "Retry" / "Discard".
+- **Retry** resets `attempts` to 0 and syncs. **Discard** (asks to confirm, needs a connection) removes the entry and restores the server's copy of the row; a row the server never got is removed locally (a category's cards move to `Other`); an audio entry is just dropped (D53).
 
 ### 15.3 Push
 
@@ -423,7 +425,7 @@ Dexie table `outbox`: `{ id (auto-increment), entity: 'category'|'card'|'audio',
 
 ### 15.6 Sync status UI
 
-Header indicator / menu item: `Synced · 2 min ago`, `Syncing…`, `3 changes pending`, `Offline — 3 changes pending`, `Sync error` (opens a small panel listing failed entries).
+Menu status line (precedence top-down, `domain/syncStatus.ts`): `Sync error` (failed entries; opens a panel listing them with Retry / Discard / Retry all), `Offline — 3 changes pending` / `Offline`, `Syncing…`, `3 changes pending`, `Synced · 2 min ago` (`just now`, `N min ago`, `N h ago`, then the date), `Not synced yet`. Indicator on the ⋯ button: dot = pending, `!` = failed; the button's accessible name includes the status (`Menu, 3 changes pending`) (D52).
 
 ## 16. Data model
 
