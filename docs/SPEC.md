@@ -100,7 +100,7 @@ The UI is **strictly monochrome: black & white plus grays**. No accent or hue co
 - Primary button: solid black with white text (dark: solid white with black text). Secondary: outline. Links: underlined text, not colored.
 - Focus ring: `outline-black` (dark: `outline-white`).
 - Errors and warnings are distinguished by weight, a `⚠` glyph and/or a border — never by color (`role="alert"` as before). Offline banner: inverted bar (black on light theme, white on dark).
-- Status pills — **the one exception to monochrome (D45, owner's choice):** `Learning` = black with white text (thin gray ring in dark theme), `Learned` = green (`green-700`) with white text. Pending-sync dot: filled neutral dot.
+- Status pills — **the one exception to monochrome (D45, owner's choice):** `Learning` = black with white text (thin gray ring in dark theme), `Learned` = green (`green-700`) with white text. Corners `rounded-lg`, the same radius as the list rows. Pending-sync dot: filled neutral dot.
 - Hierarchy comes from size, weight, spacing and gray levels (`neutral-500/600` muted text, `neutral-200/800` borders).
 
 ### Navigation map

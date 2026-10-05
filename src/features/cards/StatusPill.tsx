@@ -12,7 +12,7 @@ const STYLES: Record<CardStatus, string> = {
 export function StatusPill({ status }: { status: CardStatus }) {
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${STYLES[status]}`}
+      className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium whitespace-nowrap ${STYLES[status]}`}
     >
       {statusLabel(status)}
     </span>
