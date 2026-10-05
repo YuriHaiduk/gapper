@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  normalizeRichText,
-  plainToRichText,
-  richTextPreview,
-  richTextToPlain,
-  sameRichText,
-} from './richText';
+import { normalizeRichText, plainToRichText, richTextToPlain, sameRichText } from './richText';
 import type { RichText } from './types';
 
 const text = (value: string, marks?: string[]) => ({
@@ -32,11 +26,6 @@ describe('richText', () => {
     expect(richTextToPlain(DOC)).toBe('He abandoned the car.\none\ntwo\nthree\na\nb');
     expect(richTextToPlain(null)).toBe('');
     expect(richTextToPlain({ type: 'doc' })).toBe('');
-  });
-
-  it('richTextPreview: first non-empty line', () => {
-    expect(richTextPreview(DOC)).toBe('He abandoned the car.');
-    expect(richTextPreview(null)).toBe('');
   });
 
   it('plainToRichText: paragraphs per line, null when blank (same as the migration)', () => {

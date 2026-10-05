@@ -28,16 +28,6 @@ export function richTextToPlain(doc: RichText | null | undefined): string {
   return doc ? blockLines(doc).join('\n').trim() : '';
 }
 
-/** Muted one-line preview in the card list (SPEC §7.4): the first non-empty line. */
-export function richTextPreview(doc: RichText | null | undefined): string {
-  return (
-    richTextToPlain(doc)
-      .split('\n')
-      .find((line) => line.trim() !== '')
-      ?.trim() ?? ''
-  );
-}
-
 /** One paragraph per line; null for blank text (tests, migration parity). */
 export function plainToRichText(text: string | null | undefined): RichText | null {
   const trimmed = text?.trim() ?? '';

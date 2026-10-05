@@ -101,8 +101,8 @@ function CardListContent({ filter, query, list, pendingIds, onOpen }: ContentPro
   const categoryNames = new Map(list.categories?.map((category) => [category.id, category.name]));
 
   return (
-    <div className="flex flex-col gap-4 pb-20">
-      <ul aria-label="Cards" className="divide-y divide-neutral-200 dark:divide-neutral-800">
+    <div className="flex flex-col gap-4 pt-5 pb-20">
+      <ul aria-label="Cards" className="flex flex-col gap-5">
         {list.cards.map((card) => (
           <CardListItem
             key={card.id}
@@ -125,15 +125,11 @@ function CardListContent({ filter, query, list, pendingIds, onOpen }: ContentPro
 
 function ListSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading cards"
-      className="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800"
-    >
+    <div role="status" aria-label="Loading cards" className="flex flex-col gap-5 pt-5">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
-          className="flex min-h-16 flex-col justify-center gap-2 px-2.5 py-2 motion-safe:animate-pulse"
+          className="flex min-h-16 flex-col justify-center gap-2 rounded-lg border border-neutral-200 px-2.5 py-2 motion-safe:animate-pulse dark:border-neutral-800"
         >
           <div className="h-4 w-1/3 rounded bg-neutral-200 dark:bg-neutral-800" />
           <div className="h-3 w-1/2 rounded bg-neutral-100 dark:bg-neutral-900" />
