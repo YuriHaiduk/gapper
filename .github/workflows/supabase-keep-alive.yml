@@ -1,0 +1,33 @@
+# Supabase pauses Free projects after a week of low database activity; one small query a day
+# keeps it awake (SPEC §24, D59). The `anon` role has no table privileges (no session), so
+# Postgres itself answers "permission denied" (42501) — the request still reached the database.
+# GitHub disables scheduled workflows after 60 days without repository activity — re-enable
+# it in the Actions tab when GitHub emails about it.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query the database through the REST API
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        # Anything else (540 = project paused, 5xx, timeout) fails the run, and GitHub emails.
+        run: |
+          status=$(curl --silent --show-error --max-time 30 -o body.json -w '%{http_code}' \
+            -H "apikey: $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/categories?select=id&limit=1")
+          echo "HTTP $status: $(cat body.json)"
+          if [ "$status" = 200 ] || { [ "$status" = 401 ] && grep -q '"42501"' body.json; }; then
+            exit 0
+          fi
+          echo "::error::Supabase did not answer from the database (HTTP $status)"
+          exit 1

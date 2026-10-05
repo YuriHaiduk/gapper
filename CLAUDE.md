@@ -84,7 +84,7 @@ Supabase (CLI on host, pinned): `npx supabase@2.119.0 db push` / `test db --link
 
 ## Deployment
 
-`main` → GitHub Actions (`npm ci` → lint → typecheck → test → build) → `dist/` → GitHub Pages at `https://<user>.github.io/gapper/`. Supabase URL and publishable key come from repository Actions variables. `dist/` is never committed. Deep links work via `404.html` fallback + service-worker `navigateFallback`.
+`main` → GitHub Actions (`npm ci` → lint → format:check → typecheck → test → build → dist secret check) → `dist/` → GitHub Pages at `https://yurihaiduk.github.io/gapper/` (repo `YuriHaiduk/gapper`, public). Supabase URL and publishable key come from repository Actions variables. `dist/` is never committed. Deep links work via `404.html` fallback + service-worker `navigateFallback`. A daily `supabase-keep-alive.yml` workflow keeps the Free Supabase project from pausing (re-enable it in the Actions tab if GitHub disables it after 60 idle days).
 
 ## Owner-only actions (always ask, then wait)
 

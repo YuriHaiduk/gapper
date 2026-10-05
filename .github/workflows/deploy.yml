@@ -1,0 +1,69 @@
+# Build, check and publish the app to GitHub Pages (SPEC §24).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a running one is allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Public values (repository variables), baked into the bundle by Vite.
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check repository variables
+        # Without them the site would only show the configuration-error screen.
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::Repository variable VITE_SUPABASE_URL is not set"; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Repository variable VITE_SUPABASE_PUBLISHABLE_KEY is not set"; exit 1; }
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Check dist for secret keys (AC-56)
+        # Only the sb_publishable_ key belongs in the bundle. supabase-js itself contains the
+        # bare `sb_secret_` prefix, so look for a real secret key or any JWT (legacy keys).
+        run: |
+          if grep -rEl 'sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.' dist; then
+            echo "::error::dist/ contains a secret key or a JWT"
+            exit 1
+          fi
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

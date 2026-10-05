@@ -20,7 +20,7 @@ Original brief: `work/active/001-vocabulary-pwa-mvp/brief.md` (or `work/archive/
 
 - Primary device: iPhone, installed to the Home Screen (standalone PWA).
 - Secondary: any modern desktop browser.
-- Hosting: static files on GitHub Pages at `https://<github-user>.github.io/gapper/`.
+- Hosting: static files on GitHub Pages at `https://yurihaiduk.github.io/gapper/`.
 - Backend: Supabase Free tier (Postgres, Auth, Storage) accessed directly from the browser with `@supabase/supabase-js`. No custom server.
 - Offline-first: all cards are mirrored in IndexedDB; the app reads and writes locally and synchronizes with Supabase when online.
 
@@ -813,7 +813,7 @@ gapper/
     sync/  db/  auth/  domain/  lib/  styles/  test/
   supabase/migrations/
   e2e/
-  .github/workflows/deploy.yml
+  .github/workflows/deploy.yml, supabase-keep-alive.yml
   docker-compose.yml  Dockerfile.dev (if needed)  .env.example
   vite.config.ts  pwa-assets.config.ts  tsconfig*.json  eslint.config.js  .prettierrc  index.html  package.json
 ```
@@ -928,17 +928,17 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 
 ## 24. GitHub Pages deployment
 
-- Source in `main`; `dist/` is never committed.
+- Repository `YuriHaiduk/gapper`, **public** (Pages on a private repo needs a paid GitHub plan; the code holds no secrets, D58). Source in `main`; `dist/` is never committed.
 - Repository Settings → Pages → Source: **GitHub Actions**.
-- Repository **variables** (Settings → Secrets and variables → Actions → Variables): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public values; secrets would also work).
+- Repository **variables** (Settings → Secrets and variables → Actions → Variables): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public values).
 - `.github/workflows/deploy.yml`:
   - triggers: `push` to `main`, `workflow_dispatch`;
-  - permissions: `contents: read`, `pages: write`, `id-token: write`; concurrency group `pages`;
-  - job `build`: `actions/checkout` → `actions/setup-node` (node 24, npm cache) → `npm ci` → `npm run lint` → `npm run typecheck` → `npm run test` → `npm run build` (env from repo variables) → `actions/configure-pages` → `actions/upload-pages-artifact` (`dist`);
-  - job `deploy`: `actions/deploy-pages`, environment `github-pages`.
-- Result URL: `https://<github-user>.github.io/gapper/`.
-- Supabase Auth → URL Configuration: set Site URL to the Pages URL (used only by email links; harmless).
-- **Supabase Free tier pauses projects after ~7 days of inactivity.** Mitigation (step 12): an optional scheduled GitHub Action (e.g. every 3 days) that performs a lightweight unauthenticated request with the publishable key (e.g. a REST `select` that RLS answers with zero rows). Verify against current Supabase inactivity rules when implementing. The offline-first design keeps the app readable even if the project is paused; the owner can restore it from the dashboard.
+  - permissions: `contents: read`, `pages: write`, `id-token: write`; concurrency group `pages` (no cancel);
+  - job `build`: `actions/checkout@v7` → `actions/setup-node@v7` (node 24, npm cache) → fail if either variable is empty → `npm ci` → `lint` → `format:check` → `typecheck` → `test` → `build` (env from repo variables) → secret check: fail if `dist/` contains `sb_secret_` followed by ≥ 16 key characters or any JWT (AC-56; the bare `sb_secret_` prefix appears inside supabase-js) → `actions/configure-pages@v6` → `actions/upload-pages-artifact@v5` (`dist`);
+  - job `deploy`: `actions/deploy-pages@v5`, environment `github-pages`.
+- Result URL: `https://yurihaiduk.github.io/gapper/`.
+- Supabase Auth → URL Configuration: Site URL = the Pages URL (used only by email links; harmless).
+- **Keep-alive (D59).** Supabase pauses Free projects after a week of low database activity ("a few requests each day" is enough). `.github/workflows/supabase-keep-alive.yml` runs daily (`17 6 * * *` UTC) and on `workflow_dispatch`: one `GET /rest/v1/categories?select=id&limit=1` with the publishable key. `anon` has no table privileges (§18), so Postgres answers `401` / `42501 permission denied` — the query reached the database, which counts as success; anything else (e.g. `540` project paused, 5xx, timeout) fails the run and GitHub emails the owner. GitHub disables scheduled workflows after 60 days without repository activity (with an email warning) — re-enable it in the Actions tab. The offline-first design keeps the app readable even if the project is paused; the owner can restore it from the dashboard.
 
 ## 25. Error, loading, empty states
 
@@ -991,7 +991,7 @@ See `docs/conventions/testing.md` for rules. Coverage priorities:
 
 ## 28. MVP scope
 
-**In MVP:** everything in §5 FR-1…FR-14, search (§11.3), sync status UI, update toast, card delete, duplicate-title hint, keyboard prev/next on desktop, Supabase keep-alive workflow (optional, step 12).
+**In MVP:** everything in §5 FR-1…FR-14, search (§11.3), sync status UI, update toast, card delete, duplicate-title hint, keyboard prev/next on desktop, daily Supabase keep-alive workflow (§24).
 
 **Not in MVP:** see §29.
 
