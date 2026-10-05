@@ -698,7 +698,7 @@ create policy audio_delete on storage.objects for delete to authenticated
 | Runtime | Node 24 LTS (dev/build only) |
 | Build | Vite, TypeScript (strict) |
 | UI | React 19, Tailwind CSS v4 (`@tailwindcss/vite`) |
-| Routing | React Router v7 (`react-router`), data router (`createBrowserRouter`) in library mode |
+| Routing | React Router v8 (`react-router`), data router (`createBrowserRouter`) in library mode |
 | Local DB | Dexie 4 + `dexie-react-hooks` |
 | Backend SDK | `@supabase/supabase-js` v2 |
 | PWA | `vite-plugin-pwa` (Workbox `generateSW`) |

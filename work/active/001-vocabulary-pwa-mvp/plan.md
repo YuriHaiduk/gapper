@@ -9,7 +9,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **00. Docs & workflow skeleton** — CLAUDE.md, docs/SPEC.md, conventions, decisions, work/ structure, git init. → [step file](step-00-docs-and-workflow.md)
 - [x] **01. Project scaffold** — Vite + React + TS (strict) + Tailwind v4, ESLint/Prettier, Vitest + RTL setup, `@/` alias, `base: /gapper/`, Docker Compose (Node 24, port 5173, node_modules volume), `.env.example`, `src/lib/env.ts`, npm scripts (`dev`, `build`, `preview`, `lint`, `typecheck`, `test`, `format`). Hello-world page under `/gapper/`. SPEC §20, §23. → [step file](step-01-project-scaffold.md)
 - [x] **02. 👤 Supabase project & database** — Owner: create Supabase project, create owner user (auto-confirm), disable sign-ups, put URL + publishable key in `.env`. Claude: migrations for tables, triggers, seeding, RLS, storage bucket + policies; apply; verify (AC-44, AC-48, AC-55, AC-57 manual checks). SPEC §8, §17–§19. → [step file](step-02-supabase-database.md)
-- [ ] **03. Auth & routing shell** — Supabase client, `auth/` (AuthProvider, useAuth), LoginPage, RequireAuth, data router with basename, AppLayout (header, overflow menu, offline banner placeholder), NotFound, splash. AC-1…AC-5. SPEC §6, §9, §21.
+- [x] **03. Auth & routing shell** — Supabase client, `auth/` (AuthProvider, useAuth), LoginPage, RequireAuth, data router with basename, AppLayout (header, overflow menu, offline banner placeholder), NotFound, splash. AC-1…AC-5. SPEC §6, §9, §21. → [step file](step-03-auth-routing-shell.md)
 - [ ] **04. Data layer & sync engine** — domain types/constants/pure functions (cardFilter, slugify, search normalization, validation), Dexie schema v1, local repositories, remote repositories, outbox, syncService (push/pull/LWW/write-back/stale refetch/tombstones/single-flight), sync triggers, sync status context; tests T1, T6. SPEC §14–§16.
 - [ ] **05. Categories** — categoryService, useCategories, `/categories` page (list with counts, create, rename, delete→Other, Other locked). AC-44…AC-49. SPEC §8.
 - [ ] **06. Card list** — useCardList (visibleCount window), CardListItem, FilterSheet (status + category), SearchBar, Load more, all states, sessionStorage restore + ScrollRestoration. AC-7…AC-19. SPEC §11, §12, §25.
@@ -23,6 +23,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 
 ## Backlog
 _(items discovered during work that are not yet scheduled)_
+
+- Bundle is ~544 kB min / 158 kB gzip in one chunk (mostly supabase-js) → Vite warns >500 kB. Decide in step 11: lazy-load routes / split vendor chunk, or raise `chunkSizeWarningLimit`.
+- Offline cold start with an *expired* access token: confirm supabase-js still emits the stored session (SPEC §9 "opens offline with last session"); if it emits `null`, handle in step 10.
 
 ## Open questions
 _(none yet)_
