@@ -76,7 +76,11 @@ docker compose exec web npm run format  # prettier --write (format:check in CI)
 npx playwright test                     # E2E, run on host (step 13)
 ```
 
-Supabase migrations: `npx supabase db push` (after `npx supabase link`) or the dashboard SQL editor — see `docs/conventions/supabase.md`.
+Supabase (CLI on host, pinned): `npx supabase@2.119.0 db push` / `test db --linked` (after owner `login` + `link`) — see `docs/conventions/supabase.md`.
+
+## Tooling
+
+- Context7 MCP is configured in `.mcp.json` (project scope): use it for current library docs (Supabase, Dexie, Vite, React Router, Workbox…). Optional `CONTEXT7_API_KEY` env var raises rate limits; never commit the key.
 
 ## Deployment
 

@@ -636,7 +636,9 @@ Notes:
 alter table public.categories       enable row level security;
 alter table public.vocabulary_cards enable row level security;
 
-revoke all on public.categories, public.vocabulary_cards from anon;
+-- explicit least-privilege grants (do not rely on project default privileges); no DELETE
+revoke all on public.categories, public.vocabulary_cards from anon, authenticated;
+grant select, insert, update on public.categories, public.vocabulary_cards to authenticated;
 
 -- categories
 create policy categories_select on public.categories
@@ -660,6 +662,7 @@ create policy cards_update on public.vocabulary_cards
 ```
 
 - `(select auth.uid())` is the initPlan-cached form recommended by Supabase for performance.
+- No `SECURITY DEFINER` function in `public` is executable by `anon`/`authenticated` (incl. the dashboard's `rls_auto_enable()` event-trigger function); enforced by the pgTAP tests.
 - Upsert (`insert … on conflict do update`) requires both insert and update policies — present.
 - Triggers that reassign cards run as the invoking user and stay within that user's rows.
 
@@ -680,7 +683,8 @@ create policy audio_select on storage.objects for select to authenticated
 create policy audio_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy audio_update on storage.objects for update to authenticated
-  using (bucket_id = 'audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
+  using (bucket_id = 'audio' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy audio_delete on storage.objects for delete to authenticated
   using (bucket_id = 'audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
 ```
