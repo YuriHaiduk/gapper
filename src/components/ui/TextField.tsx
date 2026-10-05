@@ -1,4 +1,6 @@
 import { useId, type ComponentProps } from 'react';
+import { ErrorText } from './ErrorText';
+import { FOCUS_RING } from './styles';
 
 type TextFieldProps = Omit<ComponentProps<'input'>, 'id'> & {
   label: string;
@@ -18,14 +20,10 @@ export function TextField({ label, error, className = '', ...rest }: TextFieldPr
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         // 16 px text prevents iOS zoom on focus.
-        className="min-h-11 rounded-lg border border-neutral-300 bg-white px-3 text-base focus-visible:border-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-60 aria-invalid:border-red-600 dark:border-neutral-700 dark:bg-neutral-900"
+        className={`min-h-11 rounded-lg border border-neutral-300 bg-white px-3 text-base focus-visible:border-black disabled:opacity-60 aria-invalid:border-2 aria-invalid:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus-visible:border-white dark:aria-invalid:border-neutral-100 ${FOCUS_RING}`}
         {...rest}
       />
-      {error && (
-        <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
-          {error}
-        </p>
-      )}
+      {error && <ErrorText id={errorId}>{error}</ErrorText>}
     </div>
   );
 }

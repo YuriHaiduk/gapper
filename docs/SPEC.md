@@ -90,6 +90,18 @@ All routes live under the base path `/gapper/` (see §21).
 - **Offline banner** under the header when `navigator.onLine === false` (§25).
 - **Update toast** when a new service worker is waiting: "New version available · Reload".
 
+### Visual style — monochrome (rule)
+
+The UI is **strictly monochrome: black & white plus grays**. No accent or hue colors anywhere (no blue/indigo links, no red errors, no amber banners).
+
+- Allowed Tailwind colors: `black`, `white`, `neutral-*` only. Images/icons follow the same rule.
+- Light theme: black text on white (`bg-white`, `text-neutral-900`). Dark theme (`prefers-color-scheme: dark`): inverted — light text on near-black (`bg-neutral-950` = `#0a0a0a`, `text-neutral-100`).
+- Primary button: solid black with white text (dark: solid white with black text). Secondary: outline. Links: underlined text, not colored.
+- Focus ring: `outline-black` (dark: `outline-white`).
+- Errors and warnings are distinguished by weight, a `⚠` glyph and/or a border — never by color (`role="alert"` as before). Offline banner: inverted bar (black on light theme, white on dark).
+- Status pills: `Learning` = outlined, `Learned` = filled (inverted). Pending-sync dot: filled neutral dot.
+- Hierarchy comes from size, weight, spacing and gray levels (`neutral-500/600` muted text, `neutral-200/800` borders).
+
 ### Navigation map
 
 ```
@@ -287,6 +299,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
 - Tapping it opens a **bottom sheet** (native `<dialog>`) with two groups of large radio rows:
   - *Status*: All · Learning · Learned (with counts).
   - *Category*: All categories · each category (with counts), `Other` last.
+  - Counts are **faceted**: status counts respect the selected category (and search); category counts respect the selected status (and search) — each number is what the list would show after picking that option.
 - Selecting an option applies immediately and keeps the other group's value; a "Done" button / backdrop tap closes the sheet.
 - On desktop the same component renders as a dropdown panel.
 
@@ -311,7 +324,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
 - "Load more" is rendered only when `hasMore`; while loading the button shows a spinner and is disabled.
 - **Decision:** because all reads hit the local mirror, a growing window over the ordered index is simpler than cursor pages, stays correct when cards are added/removed (live query), and yields exactly the "append 20" behavior.
 - Filter or search change → `visibleCount` resets to 20.
-- Returning to the list from a card (Back) restores `visibleCount` and scroll position: `visibleCount` is stored in `sessionStorage` keyed by the canonical query string; scroll is restored by React Router's `<ScrollRestoration />`.
+- Returning to the list from a card (Back) restores `visibleCount` and scroll position: both are stored in `sessionStorage` keyed by the canonical query string (scroll saved when a card is opened, re-applied after the first local read on Back — D36); other pages use React Router's `<ScrollRestoration />`.
 - Queries use the Dexie compound index `[created_at+id]` iterated in reverse with a filter predicate for status/category/search.
 
 ## 13. Previous/next navigation
@@ -833,7 +846,7 @@ VitePWA({
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Gapper" />

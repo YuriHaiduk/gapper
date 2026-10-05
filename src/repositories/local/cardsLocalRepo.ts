@@ -1,6 +1,7 @@
 import { db } from '@/db/database';
+import { countFacets, matchesCardFilter, type CardFacets } from '@/domain/cardFilter';
 import { buildSearchText } from '@/domain/search';
-import type { Card, LocalCard } from '@/domain/types';
+import type { Card, CardFilter, LocalCard } from '@/domain/types';
 import { enqueue } from './outboxRepo';
 
 function toLocal(card: Card): LocalCard {
@@ -16,6 +17,32 @@ export function toCard(row: LocalCard): Card {
 export async function getCard(id: string): Promise<Card | undefined> {
   const row = await db.cards.get(id);
   return row && toCard(row);
+}
+
+/**
+ * First `limit` matching cards, newest first (`created_at DESC, id DESC`, SPEC §11.4, §12).
+ * `categoryId` is the id resolved from `filter.categorySlug`. Callers ask for `visibleCount + 1`.
+ */
+export async function listCards(
+  filter: CardFilter,
+  categoryId: string | undefined,
+  limit: number,
+): Promise<Card[]> {
+  const rows = await db.cards
+    .orderBy('[created_at+id]')
+    .reverse()
+    .filter((card) => matchesCardFilter(card, filter, categoryId))
+    .limit(limit)
+    .toArray();
+  return rows.map(toCard);
+}
+
+/** Faceted filter-sheet counts (SPEC §11.2). */
+export async function countCardFacets(
+  filter: CardFilter,
+  categoryId: string | undefined,
+): Promise<CardFacets> {
+  return countFacets(await db.cards.toArray(), filter, categoryId);
 }
 
 /** User write: row + outbox entry in one transaction. */

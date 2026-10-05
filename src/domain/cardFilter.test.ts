@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '@/test/factories';
-import { matchesCardFilter, parseCardFilter, serializeCardFilter } from './cardFilter';
+import {
+  countFacets,
+  emptyListMessage,
+  filterLabel,
+  matchesCardFilter,
+  parseCardFilter,
+  serializeCardFilter,
+} from './cardFilter';
 import { buildSearchText } from './search';
 import type { Card } from './types';
 
@@ -72,5 +79,64 @@ describe('matchesCardFilter', () => {
 
   it('never matches deleted cards', () => {
     expect(matchesCardFilter({ ...card, deleted_at: '2026-01-02T00:00:00.000Z' }, {})).toBe(false);
+  });
+});
+
+describe('filterLabel', () => {
+  it('describes the context for the header button', () => {
+    expect(filterLabel({})).toBe('All cards');
+    expect(filterLabel({ status: 'learning' })).toBe('Learning');
+    expect(filterLabel({ status: 'learning', categorySlug: 'law' }, 'Law')).toBe('Learning · Law');
+    expect(filterLabel({ categorySlug: 'law' }, 'Law')).toBe('Law');
+    expect(filterLabel({ q: 'proof' })).toBe('All cards');
+  });
+
+  it('falls back to the slug when the category is unknown', () => {
+    expect(filterLabel({ categorySlug: 'gone' })).toBe('gone');
+  });
+});
+
+describe('emptyListMessage', () => {
+  it('picks the SPEC §25 message: search, then category, then status', () => {
+    expect(emptyListMessage({})).toBe('No cards yet.');
+    expect(emptyListMessage({ status: 'learning' })).toBe('No learning cards yet.');
+    expect(emptyListMessage({ status: 'learned' })).toBe('No learned cards yet.');
+    expect(emptyListMessage({ status: 'learned', categorySlug: 'law' })).toBe(
+      'No cards in this category.',
+    );
+    expect(emptyListMessage({ categorySlug: 'law', q: 'proof' })).toBe('No cards match “proof”.');
+  });
+});
+
+describe('countFacets', () => {
+  const cards = [
+    local(makeCard({ id: 'a', category_id: 'law', status: 'learning', title: 'proof' })),
+    local(makeCard({ id: 'b', category_id: 'law', status: 'learned', learned_at: 'x' })),
+    local(makeCard({ id: 'c', category_id: 'other', status: 'learning' })),
+    local(makeCard({ id: 'd', category_id: 'law', deleted_at: '2026-01-02T00:00:00.000Z' })),
+  ];
+
+  it('counts everything without a filter (deleted excluded)', () => {
+    expect(countFacets(cards, {})).toEqual({
+      byStatus: { all: 3, learning: 2, learned: 1 },
+      byCategory: { law: 2, other: 1 },
+      allCategories: 3,
+    });
+  });
+
+  it('status counts respect the category, category counts respect the status', () => {
+    expect(countFacets(cards, { status: 'learning', categorySlug: 'law' }, 'law')).toEqual({
+      byStatus: { all: 2, learning: 1, learned: 1 },
+      byCategory: { law: 1, other: 1 },
+      allCategories: 2,
+    });
+  });
+
+  it('both groups respect the search', () => {
+    expect(countFacets(cards, { q: 'proof' })).toEqual({
+      byStatus: { all: 1, learning: 1, learned: 0 },
+      byCategory: { law: 1 },
+      allCategories: 1,
+    });
   });
 });

@@ -39,6 +39,12 @@ export async function hasPending(entity: OutboxEntity, entityId: string): Promis
   return (await db.outbox.where('[entity+entity_id]').equals([entity, entityId]).count()) > 0;
 }
 
+/** Ids of rows of `entity` with unsynced local changes (pending-sync dot, SPEC §7.4). */
+export async function listPendingIds(entity: OutboxEntity): Promise<Set<string>> {
+  const entries = await db.outbox.filter((entry) => entry.entity === entity).toArray();
+  return new Set(entries.map((entry) => entry.entity_id));
+}
+
 export async function getEntry(id: number): Promise<OutboxEntry | undefined> {
   return db.outbox.get(id);
 }

@@ -2,6 +2,7 @@ import { useState, type SyntheticEvent } from 'react';
 import type { SignInError } from '@/auth/authService';
 import { useAuth } from '@/auth/useAuth';
 import { Button } from '@/components/ui/Button';
+import { ErrorText } from '@/components/ui/ErrorText';
 import { TextField } from '@/components/ui/TextField';
 import { validateLogin, type LoginFieldErrors } from '@/domain/loginValidation';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -83,8 +84,8 @@ export function LoginPage() {
         <Button type="submit" pending={pending} className="mt-2">
           {pending ? 'Signing in…' : 'Sign in'}
         </Button>
-        <div role="alert" className="min-h-6 text-center text-sm text-red-700 dark:text-red-400">
-          {message}
+        <div role="alert" className="min-h-6 text-center">
+          {message && <ErrorText>{message}</ErrorText>}
         </div>
       </form>
     </main>

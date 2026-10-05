@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
+import { CardListHeader } from '@/features/cards/CardListHeader';
 import { CardListPage } from '@/pages/CardListPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -34,7 +35,7 @@ export const routes: RouteObject[] = [
               {
                 path: 'cards',
                 element: <CardListPage />,
-                handle: { title: 'Cards' } satisfies RouteHandle,
+                handle: { title: 'Cards', Header: CardListHeader } satisfies RouteHandle,
               },
               {
                 path: 'categories',

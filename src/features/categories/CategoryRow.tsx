@@ -1,8 +1,8 @@
 import { cardCountLabel } from '@/domain/categories';
 import type { Category } from '@/domain/types';
+import { FOCUS_RING } from '@/components/ui/styles';
 
-const ACTION =
-  'min-h-11 rounded-lg px-3 text-base font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50';
+const ACTION = `min-h-11 rounded-lg px-3 text-base font-medium hover:bg-neutral-100 disabled:opacity-50 dark:hover:bg-neutral-800 ${FOCUS_RING}`;
 
 type CategoryRowProps = {
   category: Category;
@@ -50,7 +50,7 @@ export function CategoryRow({ category, count, disabled, onRename, onDelete }: C
             aria-label={`Rename ${category.name}`}
             disabled={disabled}
             onClick={onRename}
-            className={`${ACTION} text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950`}
+            className={ACTION}
           >
             Rename
           </button>
@@ -59,7 +59,7 @@ export function CategoryRow({ category, count, disabled, onRename, onDelete }: C
             aria-label={`Delete ${category.name}`}
             disabled={disabled}
             onClick={onDelete}
-            className={`${ACTION} text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950`}
+            className={`${ACTION} underline underline-offset-4`}
           >
             Delete
           </button>

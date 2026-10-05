@@ -8,7 +8,7 @@ export function ConfigErrorScreen({ problems }: ConfigErrorScreenProps) {
         The app is missing required settings. Copy <code>.env.example</code> to <code>.env</code>,
         fill in the values and restart the dev server.
       </p>
-      <ul className="list-disc space-y-1 pl-5 text-red-700 dark:text-red-400">
+      <ul className="list-disc space-y-1 pl-5 font-semibold">
         {problems.map((problem) => (
           <li key={problem}>{problem}</li>
         ))}

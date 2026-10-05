@@ -5,7 +5,7 @@ export function OfflineBanner() {
   return (
     <div aria-live="polite">
       {!online && (
-        <p className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        <p className="bg-neutral-900 px-4 py-2 text-center text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-950">
           Offline — changes will sync later
         </p>
       )}

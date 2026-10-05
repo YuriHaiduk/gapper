@@ -19,7 +19,8 @@ Primary target: iPhone, installed PWA (standalone), portrait, one-handed use. De
 
 ## Visual style
 
-- Minimal, calm, readable. System font stack. Neutral palette + one accent color. Support `prefers-color-scheme: dark`.
+- Minimal, calm, readable. System font stack. **Monochrome only — black, white, `neutral-*` grays; no accent/hue colors** (SPEC §6 *Visual style*). Support `prefers-color-scheme: dark` (inverted). Errors are marked by `⚠`/weight/border, never by red.
+- Check: `grep -rE "(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|stone)-[0-9]" src` must be empty.
 - Card detail hierarchy: title (largest) → translation → example sentence → its translation → audio.
 - Status shown as a small pill (Learning / Learned); category as muted text or chip.
 

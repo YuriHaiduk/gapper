@@ -8,7 +8,7 @@ export function SplashScreen() {
       className="flex min-h-dvh flex-col items-center justify-center gap-4"
     >
       <span className="text-3xl font-bold">Gapper</span>
-      <Spinner className="size-6 text-indigo-600" />
+      <Spinner className="size-6" />
       <span className="sr-only">Loading…</span>
     </main>
   );

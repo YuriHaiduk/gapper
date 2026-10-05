@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { useSyncStatus } from '@/sync/useSyncStatus';
+import { ICON_BUTTON } from '@/components/ui/styles';
 
 const ITEM =
   'flex min-h-11 w-full items-center px-4 text-left text-base hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-none dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800';
@@ -49,7 +50,7 @@ export function OverflowMenu() {
         onClick={() => {
           setOpen((value) => !value);
         }}
-        className="flex size-11 items-center justify-center rounded-lg text-2xl leading-none hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-indigo-500 dark:hover:bg-neutral-800"
+        className={ICON_BUTTON}
       >
         <span aria-hidden="true">⋯</span>
       </button>

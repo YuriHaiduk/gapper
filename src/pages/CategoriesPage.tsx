@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { ErrorText } from '@/components/ui/ErrorText';
 import { Spinner } from '@/components/ui/Spinner';
 import { deleteCategoryPrompt } from '@/domain/categories';
 import type { Category } from '@/domain/types';
@@ -58,11 +59,7 @@ export function CategoriesPage() {
           New category
         </Button>
       )}
-      {deleteError && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
-          {deleteError}
-        </p>
-      )}
+      {deleteError && <ErrorText role="alert">{deleteError}</ErrorText>}
       {onlyOther && (
         <p className="py-4 text-center text-neutral-600 dark:text-neutral-400">
           Create categories to organize your cards.
