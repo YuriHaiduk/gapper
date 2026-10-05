@@ -13,7 +13,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **04. Data layer & sync engine** — domain types/constants/pure functions (cardFilter, slugify, search normalization, validation), Dexie schema v1, local repositories, remote repositories, outbox, syncService (push/pull/LWW/write-back/stale refetch/tombstones/single-flight), sync triggers, sync status context; tests T1, T6. SPEC §14–§16. → [step file](step-04-data-layer-sync.md)
 - [x] **05. Categories** — categoryService, useCategories, `/categories` page (list with counts, create, rename, delete→Other, Other locked). AC-44…AC-49. SPEC §8. → [step file](step-05-categories.md)
 - [x] **06. Card list** — useCardList (visibleCount window), CardListItem, FilterSheet (status + category), SearchBar, Load more, all states, sessionStorage restore + ScrollRestoration; monochrome UI rule applied app-wide. AC-7…AC-19. SPEC §6, §11, §12, §25. → [step file](step-06-card-list.md)
-- [ ] **07. Create / edit / delete card (no audio)** — cardService, CardFormPage (create/edit), validation, default Other, prefilled category from context, duplicate-title hint, Save & add another, delete with confirm. AC-20…AC-24, AC-35…AC-37. SPEC §7.
+- [x] **07. Create / edit / delete card (no audio)** — cardService, CardFormPage (create/edit), validation, default Other, prefilled category from context, duplicate-title hint, Save & add another, delete with confirm. AC-20…AC-24, AC-35…AC-37. SPEC §7. → [step file](step-07-card-form.md)
 - [ ] **08. Card detail & prev/next** — CardDetailPage, status toggle, useAdjacentCards (keyset neighbours), AdjacentNav, keyboard ←/→, replace navigation. AC-25…AC-34. SPEC §7.5, §13.
 - [ ] **09. Audio** — useAudioRecorder (mime selection, 60 s cap, cleanup), AudioRecorder UI, audio_blobs, audioService, upload/delete via outbox, AudioPlayer with download+cache. 👤 test recording on iPhone (after step 12, or via tunnel). AC-38…AC-43. SPEC §10, §19.
 - [ ] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25.
@@ -29,6 +29,8 @@ _(items discovered during work that are not yet scheduled)_
 
 - Different user signs in on a device with local data → wipe Dexie first (SPEC §9). `meta.user_id` is written by `SyncProvider` since step 04; the comparison + wipe belongs to step 10.
 - Step 08: the detail page must link Back to `/cards?<context>` so the list's sessionStorage count/scroll restore (D36) applies; real-device check of the filter `<dialog>` bottom sheet on iOS Safari.
+- Card form: warn about unsaved changes when leaving the form (not in SPEC; ask owner).
+- Step 08: detail page `Edit` → `/cards/:id/edit?<ctx>`; reuse `useCard`, `useCardActions().setStatus` and the `RouteHandle.back` function form to keep the list context.
 - Sync status UI: `useSyncStatus()` already exposes `syncing`, `lastResult`, `lastSyncAt`, `pendingCount`, `failedCount`, `initialSyncDone` — header indicator/panel in step 10; list "Loading your cards…" uses `initialSyncDone` in step 06.
 
 ## Open questions

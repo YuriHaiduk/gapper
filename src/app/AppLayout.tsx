@@ -1,13 +1,16 @@
 import type { ComponentType, ReactNode } from 'react';
-import { Link, Outlet, useMatches } from 'react-router';
+import { Link, Outlet, useLocation, useMatches, type Params } from 'react-router';
 import { HeaderRow } from '@/components/ui/HeaderRow';
 import { ICON_BUTTON } from '@/components/ui/styles';
 import { OfflineBanner } from './OfflineBanner';
 import { OverflowMenu } from './OverflowMenu';
 
+export type BackContext = { params: Params; search: string };
+
 export type RouteHandle = {
   title?: string;
-  back?: string;
+  /** Back link target; a function can keep the list context (`search` includes `?`). */
+  back?: string | ((context: BackContext) => string);
   /** Replaces the default back · title · menu row (e.g. the card list's filter header). */
   Header?: ComponentType<{ menu: ReactNode }>;
 };
@@ -19,8 +22,14 @@ function isRouteHandle(value: unknown): value is RouteHandle {
 /** Shell for protected pages: sticky safe-area header, offline banner, page outlet. */
 export function AppLayout() {
   const matches = useMatches();
-  const handle = matches.map((match) => match.handle).findLast(isRouteHandle);
+  const { search } = useLocation();
+  const match = matches.findLast((item) => isRouteHandle(item.handle));
+  const handle = match && isRouteHandle(match.handle) ? match.handle : undefined;
   const Header = handle?.Header;
+  const back =
+    typeof handle?.back === 'function'
+      ? handle.back({ params: match?.params ?? {}, search })
+      : handle?.back;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -30,8 +39,8 @@ export function AppLayout() {
         ) : (
           <HeaderRow
             left={
-              handle?.back && (
-                <Link to={handle.back} aria-label="Back" className={ICON_BUTTON}>
+              back && (
+                <Link to={back} aria-label="Back" className={ICON_BUTTON}>
                   <span aria-hidden="true">‹</span>
                 </Link>
               )

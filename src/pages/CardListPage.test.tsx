@@ -65,6 +65,15 @@ describe('CardListPage', () => {
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
   });
 
+  it('AC-22: the add button carries the list context', async () => {
+    await seed(1, () => ({ category_id: LAW.id }));
+    renderApp('/cards?category=law');
+    expect(await screen.findByRole('link', { name: 'Add card' })).toHaveAttribute(
+      'href',
+      '/gapper/cards/new?category=law',
+    );
+  });
+
   it('AC-9: exactly 20 cards → no Load more', async () => {
     await seed(20);
     renderApp('/cards');

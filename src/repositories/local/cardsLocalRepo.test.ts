@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '@/test/factories';
-import { applyRemoteCard, countCardFacets, listCards } from './cardsLocalRepo';
+import { applyRemoteCard, countCardFacets, findCardsByTitle, listCards } from './cardsLocalRepo';
 
 const at = (minute: number) => new Date(Date.UTC(2026, 0, 1, 0, minute)).toISOString();
 
@@ -76,5 +76,17 @@ describe('countCardFacets', () => {
       byCategory: { law: 3, other: 1 },
       allCategories: 4,
     });
+  });
+});
+
+describe('findCardsByTitle', () => {
+  it('matches trimmed, case-insensitive titles of non-deleted cards except the excluded one', async () => {
+    await applyRemoteCard(makeCard({ id: 'a', title: 'Abandon' }));
+    await applyRemoteCard(makeCard({ id: 'b', title: 'abandon ' }));
+    await applyRemoteCard(makeCard({ id: 'c', title: 'abandoned' }));
+    await applyRemoteCard(makeCard({ id: 'd', title: 'abandon', deleted_at: at(1) }));
+    expect(ids(await findCardsByTitle(' ABANDON')).sort()).toEqual(['a', 'b']);
+    expect(ids(await findCardsByTitle('abandon', 'a'))).toEqual(['b']);
+    expect(await findCardsByTitle('  ')).toEqual([]);
   });
 });

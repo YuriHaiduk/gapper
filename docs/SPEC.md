@@ -173,6 +173,20 @@ Order and emphasis:
 
 Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. `Edit` lives in the header. Back control returns to the list with the same context.
 
+### 7.6 Card form
+
+`/cards/new` and `/cards/:id/edit` share `CardFormPage`. The list context (`?status&category&q`) stays in the form's URL: the FAB links to `/cards/new?<list query>`, and the header Back link returns to `/cards?<query>` (create) or `/cards/:id?<query>` (edit).
+
+- Fields, top to bottom: Title, Translation, Example sentence (multiline), Example translation (multiline), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
+- **Category select** has no blank option (D37). Create defaults to the context category (`?category=` slug) or `Other`. To clear a card's category, pick `Other`. The service also maps an empty, unknown or deleted category id to `Other`.
+- **New cards** are always `learning` (D38). Status changes on the edit form follow §7.2.
+- Validation runs on submit (§7.1). Errors appear under the field, and the first invalid field gets focus. The duplicate-title hint shows under Title while typing.
+- Sticky bottom action bar: **Save**, plus **Save & add another** on create. Buttons show a pending state while saving. An unexpected failure shows "Couldn't save."
+- **After Save** (D39): `/cards/:id?<query>` with `replace`, so Back from the card returns to where the form was opened, not to the form. Saving an unchanged card is a no-op (no new `updated_at`, no outbox entry).
+- **Save & add another** (D40) stays on the form. It clears the text fields, keeps the selected category, focuses Title and announces "Saved “abandon”." (`role="status"`).
+- **Delete card** (edit only): native confirm (§7.3, D32), then soft delete, then `/cards?<query>` with `replace`.
+- Edit of a missing or deleted card: "Card not found." + "Back to cards". The form is initialized once per card, so a sync landing mid-edit does not overwrite what the user typed (the user's later save wins via LWW).
+
 ## 8. Categories
 
 ### 8.1 Model
@@ -744,6 +758,8 @@ Rules: see `docs/conventions/architecture.md`. UI never imports Supabase or Dexi
 
 ```ts
 // services/cardService.ts
+// CardInput = { title; translation?; example_sentence?; example_sentence_translation?;
+//               category_id?: string | null; status?: CardStatus }  (status ignored on create)
 createCard(input: CardInput, audio?: RecordedAudio): Promise<Card>
 updateCard(id: string, patch: CardInput, audio?: AudioChange): Promise<Card>
 setStatus(id: string, status: CardStatus): Promise<Card>

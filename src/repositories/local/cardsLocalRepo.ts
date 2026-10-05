@@ -1,6 +1,8 @@
 import { db } from '@/db/database';
 import { countFacets, matchesCardFilter, type CardFacets } from '@/domain/cardFilter';
+import { duplicateTitleKey } from '@/domain/cardForm';
 import { buildSearchText } from '@/domain/search';
+import { nowIso } from '@/domain/timestamps';
 import type { Card, CardFilter, LocalCard } from '@/domain/types';
 import { enqueue } from './outboxRepo';
 
@@ -51,6 +53,32 @@ export async function saveCard(card: Card): Promise<void> {
     await db.cards.put(toLocal(card));
     await enqueue('card', 'upsert', card.id);
   });
+}
+
+/**
+ * User delete (SPEC §7.3): tombstone + `card:upsert`, then removal of every recording of the
+ * card from Storage via one folder `audio:delete` (D29). The row is removed once synced.
+ */
+export async function deleteCardLocally(card: Card): Promise<void> {
+  const now = nowIso();
+  await db.transaction('rw', db.cards, db.outbox, async () => {
+    await db.cards.put(toLocal({ ...card, deleted_at: now, updated_at: now }));
+    await enqueue('card', 'upsert', card.id);
+    await enqueue('audio', 'delete', `${card.user_id}/${card.id}/`);
+  });
+}
+
+/** Non-deleted cards with the same title, trimmed and case-insensitive (duplicate hint, §7.1). */
+export async function findCardsByTitle(title: string, excludeId?: string): Promise<Card[]> {
+  const key = duplicateTitleKey(title);
+  if (key === '') return [];
+  const rows = await db.cards
+    .filter(
+      (card) =>
+        card.deleted_at === null && card.id !== excludeId && duplicateTitleKey(card.title) === key,
+    )
+    .toArray();
+  return rows.map(toCard);
 }
 
 /** Server truth written locally without an outbox entry. */

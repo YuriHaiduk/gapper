@@ -1,0 +1,201 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { db } from '@/db/database';
+import { applyRemoteCard, getCard } from '@/repositories/local/cardsLocalRepo';
+import { applyRemoteCategory } from '@/repositories/local/categoriesLocalRepo';
+import { setMeta } from '@/repositories/local/metaRepo';
+import { renderApp } from '@/test/auth';
+import { makeCard, makeCategory, makeOther, OTHER_ID, USER_ID } from '@/test/factories';
+
+const LAW = makeCategory({ id: 'cat-law', name: 'Law', slug: 'law' });
+
+async function onlyCard() {
+  const cards = await db.cards.toArray();
+  const [card] = cards;
+  if (cards.length !== 1 || !card) throw new Error(`expected 1 card, got ${cards.length}`);
+  return card;
+}
+
+describe('CardFormPage', () => {
+  beforeEach(async () => {
+    sessionStorage.clear();
+    await setMeta('user_id', USER_ID);
+    await setMeta('initial_sync_done', true);
+    await applyRemoteCategory(makeOther());
+    await applyRemoteCategory(LAW);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('create', () => {
+    it('AC-20: title only → Other, learning; opens the card, list shows it first', async () => {
+      const user = userEvent.setup();
+      await applyRemoteCard(makeCard({ id: 'old', title: 'older' }));
+      const app = renderApp('/cards/new');
+      const title = await screen.findByLabelText('Title');
+      expect(title).toHaveFocus();
+      expect(screen.getByLabelText('Category')).toHaveValue(OTHER_ID);
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+
+      await user.type(title, 'abandon{Enter}');
+
+      const card = await db.cards.filter((c) => c.title === 'abandon').first();
+      if (!card) throw new Error('card not saved');
+      expect(card).toMatchObject({ category_id: OTHER_ID, status: 'learning', learned_at: null });
+      await waitFor(() => {
+        expect(app.location()).toBe(`/cards/${card.id}`);
+      });
+      await app.router.navigate('/cards');
+      const list = await screen.findByRole('list', { name: 'Cards' });
+      expect(within(list).getAllByRole('link')[0]).toHaveTextContent('abandon');
+    });
+
+    it('AC-21: empty title → error, nothing saved', async () => {
+      const user = userEvent.setup();
+      const app = renderApp('/cards/new');
+      await user.type(await screen.findByLabelText('Translation'), 'покинути');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByText('Title is required.')).toBeInTheDocument();
+      expect(screen.getByLabelText('Title')).toHaveFocus();
+      expect(screen.getByLabelText('Title')).toHaveAccessibleDescription(/Title is required\./);
+      expect(await db.cards.count()).toBe(0);
+      expect(app.location()).toBe('/cards/new');
+    });
+
+    it('AC-22: the list context preselects the category and is kept on save', async () => {
+      const user = userEvent.setup();
+      const app = renderApp('/cards/new?status=learning&category=law');
+      expect(await screen.findByLabelText('Category')).toHaveValue(LAW.id);
+      expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute(
+        'href',
+        '/gapper/cards?status=learning&category=law',
+      );
+      await user.type(screen.getByLabelText('Title'), 'tort');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(async () => {
+        expect((await onlyCard()).category_id).toBe(LAW.id);
+      });
+      const card = await onlyCard();
+      expect(app.location()).toBe(`/cards/${card.id}?status=learning&category=law`);
+    });
+
+    it('AC-23: a duplicate title shows a non-blocking hint with a link', async () => {
+      const user = userEvent.setup();
+      await applyRemoteCard(makeCard({ id: 'c1', title: 'abandon' }));
+      renderApp('/cards/new');
+      await user.type(await screen.findByLabelText('Title'), ' Abandon');
+
+      const link = await screen.findByRole('link', { name: '“abandon”' });
+      expect(link).toHaveAttribute('href', '/gapper/cards/c1');
+      expect(link.closest('p')).toHaveTextContent('You already have a card “abandon”.');
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(async () => {
+        expect(await db.cards.count()).toBe(2);
+      });
+    });
+
+    it('AC-24: Save & add another resets the form and keeps the category', async () => {
+      const user = userEvent.setup();
+      const app = renderApp('/cards/new');
+      await user.type(await screen.findByLabelText('Title'), 'tort');
+      await user.type(screen.getByLabelText('Translation'), 'делікт');
+      await user.selectOptions(screen.getByLabelText('Category'), 'Law');
+      await user.click(screen.getByRole('button', { name: 'Save & add another' }));
+
+      expect(await screen.findByText('Saved “tort”.')).toBeInTheDocument();
+      expect(screen.getByLabelText('Title')).toHaveValue('');
+      expect(screen.getByLabelText('Title')).toHaveFocus();
+      expect(screen.getByLabelText('Translation')).toHaveValue('');
+      expect(screen.getByLabelText('Category')).toHaveValue(LAW.id);
+      expect(app.location()).toBe('/cards/new');
+      expect(await onlyCard()).toMatchObject({ title: 'tort', category_id: LAW.id });
+    });
+  });
+
+  describe('edit', () => {
+    beforeEach(async () => {
+      await applyRemoteCard(makeCard({ id: 'c1', title: 'abandon', category_id: LAW.id }));
+    });
+
+    it('AC-35: edits the translation; created_at unchanged; opens the card', async () => {
+      const user = userEvent.setup();
+      const app = renderApp('/cards/c1/edit?category=law');
+      const translation = await screen.findByLabelText('Translation');
+      expect(translation).toHaveValue('покинути');
+      expect(screen.getByLabelText('Category')).toHaveValue(LAW.id);
+      expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute(
+        'href',
+        '/gapper/cards/c1?category=law',
+      );
+      expect(screen.queryByRole('button', { name: 'Save & add another' })).not.toBeInTheDocument();
+
+      await user.clear(translation);
+      await user.type(translation, 'залишити');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(app.location()).toBe('/cards/c1?category=law');
+      });
+      const card = await getCard('c1');
+      expect(card?.translation).toBe('залишити');
+      expect(card?.created_at).toBe('2026-01-01T00:00:00.000Z');
+      expect(card?.updated_at).not.toBe('2026-01-01T00:00:00.000Z');
+    });
+
+    it('changes the status and sets learned_at', async () => {
+      const user = userEvent.setup();
+      renderApp('/cards/c1/edit');
+      expect(await screen.findByRole('radio', { name: 'Learning' })).toBeChecked();
+      await user.click(screen.getByRole('radio', { name: 'Learned' }));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(async () => {
+        expect((await getCard('c1'))?.status).toBe('learned');
+      });
+      expect((await getCard('c1'))?.learned_at).not.toBeNull();
+    });
+
+    it('AC-37: delete after confirmation removes the card from the list', async () => {
+      const user = userEvent.setup();
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await applyRemoteCard(makeCard({ id: 'c2', title: 'keep' }));
+      const app = renderApp('/cards/c1/edit');
+      await user.click(await screen.findByRole('button', { name: 'Delete card' }));
+
+      expect(confirm).toHaveBeenCalledWith('Delete “abandon”? This cannot be undone.');
+      await waitFor(() => {
+        expect(app.location()).toBe('/cards');
+      });
+      const list = await screen.findByRole('list', { name: 'Cards' });
+      expect(within(list).queryByText('abandon')).not.toBeInTheDocument();
+      expect(within(list).getByText('keep')).toBeInTheDocument();
+      expect((await getCard('c1'))?.deleted_at).not.toBeNull();
+    });
+
+    it('cancelled delete keeps the card', async () => {
+      const user = userEvent.setup();
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const app = renderApp('/cards/c1/edit');
+      await user.click(await screen.findByRole('button', { name: 'Delete card' }));
+
+      expect(app.location()).toBe('/cards/c1/edit');
+      expect((await getCard('c1'))?.deleted_at).toBeNull();
+      expect(await db.outbox.count()).toBe(0);
+    });
+
+    it('unknown or deleted card → Card not found', async () => {
+      await applyRemoteCard(makeCard({ id: 'dead', deleted_at: '2026-01-02T00:00:00.000Z' }));
+      renderApp('/cards/dead/edit?status=learned');
+      expect(await screen.findByText('Card not found.')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Back to cards' })).toHaveAttribute(
+        'href',
+        '/gapper/cards?status=learned',
+      );
+    });
+  });
+});

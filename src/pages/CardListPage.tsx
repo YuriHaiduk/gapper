@@ -31,7 +31,7 @@ export function CardListPage() {
         onOpen={saveScroll}
       />
       <Link
-        to="/cards/new"
+        to={`/cards/new${query ? `?${query}` : ''}`}
         aria-label="Add card"
         className={`fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] flex size-14 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg hover:bg-black focus-visible:outline-offset-2 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 ${FOCUS_RING}`}
       >

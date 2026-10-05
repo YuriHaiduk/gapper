@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { CardListHeader } from '@/features/cards/CardListHeader';
+import { CardFormPage } from '@/pages/CardFormPage';
 import { CardListPage } from '@/pages/CardListPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -36,6 +37,22 @@ export const routes: RouteObject[] = [
                 path: 'cards',
                 element: <CardListPage />,
                 handle: { title: 'Cards', Header: CardListHeader } satisfies RouteHandle,
+              },
+              {
+                path: 'cards/new',
+                element: <CardFormPage mode="create" />,
+                handle: {
+                  title: 'New card',
+                  back: ({ search }) => `/cards${search}`,
+                } satisfies RouteHandle,
+              },
+              {
+                path: 'cards/:id/edit',
+                element: <CardFormPage mode="edit" />,
+                handle: {
+                  title: 'Edit card',
+                  back: ({ params, search }) => `/cards/${params.id ?? ''}${search}`,
+                } satisfies RouteHandle,
               },
               {
                 path: 'categories',
