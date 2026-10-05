@@ -33,7 +33,7 @@ Make sync state visible and recoverable (status line, pending indicator, failed-
 
 ## Verification
 - [x] npm run lint / typecheck / test / build / format:check — all pass (262 tests, 35 files; full suite 3× without flakes); build: app chunk 706 kB / 208 kB gzip (+2 kB gzip)
-- [ ] Manual check (owner, not done by Claude — needs credentials): DevTools offline → banner with N; edits → dot; online → syncs by itself, dots clear (AC-51); Sign out with pending → confirm → `/login`, IndexedDB `gapper` empty (AC-6)
+- [x] Manual check (owner, 2026-10-05, after the D54 fix — passed): DevTools offline → banner with N; edits → dot; online → syncs by itself, dots clear (AC-51); Sign out with pending → confirm → `/login`, IndexedDB `gapper` empty (AC-6)
 
 ## Notes / decisions
 - D49: wipe = clear all tables (after `SyncService.whenIdle()`), DB stays open; `clearDb` renamed `wipeLocalData`.
