@@ -150,6 +150,12 @@ export class FakeServer {
           }
           return Promise.resolve();
         },
+        download: (path) => {
+          this.maybeFail(`download:${path}`);
+          const blob = this.audio.get(path);
+          if (!blob) return Promise.reject(new RemoteError('rejected', 'Object not found', '404'));
+          return Promise.resolve(blob);
+        },
       },
     };
   }

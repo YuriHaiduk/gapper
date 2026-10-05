@@ -16,6 +16,8 @@ export type AudioRemote = {
   upload(path: string, blob: Blob, contentType: string): Promise<void>;
   /** Removes one object, or every object under a folder prefix ending in `/`. */
   remove(pathOrPrefix: string): Promise<void>;
+  /** Downloads one object (authenticated; RLS applies). */
+  download(path: string): Promise<Blob>;
 };
 
 export type SyncRemote = {

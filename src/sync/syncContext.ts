@@ -11,6 +11,8 @@ export type SyncState = {
   pendingCount: number;
   failedCount: number;
   syncNow: () => Promise<SyncResult>;
+  /** Downloads and caches a recording (SPEC §10.4, D47). */
+  downloadAudio: (path: string, cardId: string) => Promise<Blob>;
 };
 
 export const SyncContext = createContext<SyncState | null>(null);

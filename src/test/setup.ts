@@ -29,3 +29,14 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup();
 });
+
+// jsdom has no object URLs and no media playback.
+URL.createObjectURL = () => 'blob:test';
+URL.revokeObjectURL = () => undefined;
+HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+  this.dispatchEvent(new Event('play'));
+  return Promise.resolve();
+};
+HTMLMediaElement.prototype.pause = function pause(this: HTMLMediaElement) {
+  this.dispatchEvent(new Event('pause'));
+};

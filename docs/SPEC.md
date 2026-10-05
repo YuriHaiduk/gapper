@@ -94,7 +94,7 @@ All routes live under the base path `/gapper/` (see §21).
 
 The UI is **strictly monochrome: black & white plus grays**. No accent or hue colors anywhere (no blue/indigo links, no red errors, no amber banners).
 
-- Allowed Tailwind colors: `black`, `white`, `neutral-*` only (exception: `green-700` for the Learned pill, D45). Images/icons follow the same rule.
+- Allowed Tailwind colors: `black`, `white`, `neutral-*` only (exceptions: `green-700` for the Learned pill, D45; `red-600` for the pulsing recording dot, §10.1, D46). Images/icons follow the same rule.
 - Light theme: black text on white (`bg-white`, `text-neutral-900`). Dark theme (`prefers-color-scheme: dark`): inverted — light text on near-black (`bg-neutral-950` = `#0a0a0a`, `text-neutral-100`).
 - Primary button: solid black with white text (dark: solid white with black text). Secondary: outline. Links: underlined text, not colored.
 - Focus ring: `outline-black` (dark: `outline-white`).
@@ -177,7 +177,7 @@ States: skeleton until the card and the categories are read locally; "Card not f
 
 `/cards/new` and `/cards/:id/edit` share `CardFormPage`. The list context (`?status&category&q`) stays in the form's URL: the FAB links to `/cards/new?<list query>`, and the header Back link returns to `/cards?<query>` (create) or `/cards/:id?<query>` (edit).
 
-- Fields, top to bottom: Title, **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
+- Fields, top to bottom: Title, **Pronunciation** (audio recorder, §10.1; right under the title so the word is recorded as soon as it is typed, D46), **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
 - **Category select** has no blank option (D37). Create defaults to the context category (`?category=` slug) or `Other`. To clear a card's category, pick `Other`. The service also maps an empty, unknown or deleted category id to `Other`.
 - **New cards** are always `learning` (D38). Status changes on the edit form follow §7.2.
 - Validation runs on submit (§7.1). Errors appear under the field, and the first invalid field gets focus. The duplicate-title hint shows under Title while typing.
@@ -261,7 +261,9 @@ States of the `AudioRecorder` component:
 | `existing` (edit, has saved audio) | play existing, "Replace", "Remove" |
 | `denied` / `unsupported` / `error` | message + retry; form can still be saved without audio |
 
-- Recording auto-stops at **60 seconds**.
+- Recording auto-stops at **60 seconds** and the recording is kept, like after Stop.
+- While asking for the microphone or recording, **Save** and **Save & add another** are disabled until Stop (D46). A new recording, or Remove of the saved one, counts as an unsaved change (§7.6). Removing the saved recording shows "The recording will be removed when you save." with Undo; Remove on a new, unsaved recording returns to the previous state.
+- Other failures: "Couldn't record. Try again." (+ Try again).
 - Audio is **optional** (decision: fastest card entry; audio can be added later).
 - Re-record discards the previous unsaved recording. Nothing is persisted until the form is saved.
 - Microphone tracks are stopped (`track.stop()`) as soon as recording stops or the component unmounts. Object URLs are revoked on cleanup.
@@ -288,6 +290,8 @@ States of the `AudioRecorder` component:
 - If a blob for `audio_path` exists in `audio_blobs` → play it via an object URL.
 - Else, if online → `storage.from('audio').download(path)` (authenticated; RLS applies), store blob in `audio_blobs` (`uploaded = 1`), play it. **Decision:** download-and-cache instead of signed URLs, so audio works offline after first play.
 - Else → "Audio unavailable offline".
+- The download starts as soon as the detail page (or the edit form) shows a recording that is not cached, not on the Play tap (D48): iOS Safari may refuse `play()` after an awaited network request. A failed download shows "Couldn't load audio." + Retry. The download runs through the sync layer (`SyncService.downloadAudio`, D47).
+- When a pulled card references a different recording (replaced on another device), its other cached, already uploaded blobs are dropped.
 - Cache eviction: none in MVP (recordings are ~50–150 KB each). A "Download all audio for offline use" action is a future improvement.
 
 ## 11. Filtering, search, sorting
@@ -779,6 +783,7 @@ getAdjacent(id: string, filter: CardFilter): Promise<{ prev: Card | null; next: 
 
 // sync/syncService.ts
 sync(): Promise<SyncResult>   // single-flight
+downloadAudio(path: string, cardId: string): Promise<Blob>   // download + cache (§10.4)
 ```
 
 `AudioChange = { kind: 'keep' } | { kind: 'replace'; audio: RecordedAudio } | { kind: 'remove' }`.
@@ -939,7 +944,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 | Load more | button spinner | button hidden when no more | — | works (local) |
 | Card detail | skeleton | "Card not found." + back to list (deleted/unknown id) | — | audio: "Audio unavailable offline" |
 | Card form | Save spinner, disabled | — | field errors; "Couldn't save." | saves locally; banner explains sync later |
-| Audio recorder | "Allow microphone access…" | — | denied: "Microphone access is blocked. Enable it in Settings → Safari → Microphone." unsupported: "Recording isn't supported in this browser." | recording works offline |
+| Audio recorder | "Allow microphone access…" | — | denied: "Microphone access is blocked. Enable it in Settings → Safari → Microphone." unsupported: "Recording isn't supported in this browser." other: "Couldn't record. Try again." Player: "Loading audio…"; download failed: "Couldn't load audio." + Retry | recording works offline |
 | Categories | skeleton | only Other → "Create categories to organize your cards." | inline validation | works (local) |
 | Sync | header "Syncing…" | — | "Sync error" panel with failed items, Retry/Discard | "Offline — N changes pending" |
 

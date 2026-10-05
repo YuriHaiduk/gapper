@@ -26,7 +26,7 @@ Behavior is specified in `docs/SPEC.md` §14–§19. These are the implementatio
 - Always select explicit columns; never `select('*')` in remote repositories.
 - Always check `{ error }` and convert it into a typed `AppError`; never swallow errors.
 - Do not pass `user_id` from UI state; remote repos take it from the current session (`auth.getUser()`/session cache). RLS is the real guard anyway.
-- Storage: private bucket `audio`, key `<user_id>/<card_id>/<recording_uuid>.<ext>`. Playback via `createSignedUrl` (short TTL) or `download()` → cached blob.
+- Storage: private bucket `audio`, key `<user_id>/<card_id>/<recording_uuid>.<ext>`. Playback: `download()` through `SyncService.downloadAudio` → blob cached in `audio_blobs` (D47, D48); no signed URLs.
 
 ## Outbox / sync rules
 

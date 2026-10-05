@@ -123,3 +123,37 @@ export function RedoIcon(props: IconProps) {
     </StrokeIcon>
   );
 }
+
+export function MicIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </StrokeIcon>
+  );
+}
+
+export function PlayIcon({ className = 'size-6' }: IconProps) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
+    </svg>
+  );
+}
+
+export function PauseIcon({ className = 'size-6' }: IconProps) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="5" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
+export function StopIcon({ className = 'size-5' }: IconProps) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  );
+}

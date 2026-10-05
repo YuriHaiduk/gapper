@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { RichTextView } from '@/components/ui/RichTextView';
 import { formatDate } from '@/domain/dates';
 import type { Card } from '@/domain/types';
+import { CardAudio } from '@/features/audio/CardAudio';
 import { AdjacentNav } from '@/features/cards/AdjacentNav';
 import { StatusPill } from '@/features/cards/StatusPill';
 import { StatusToggle } from '@/features/cards/StatusToggle';
@@ -42,6 +43,9 @@ function CardDetails({ card, categoryName }: { card: Card; categoryName: string 
         </span>
       </div>
       {card.notes && <RichTextView doc={card.notes} />}
+      {card.audio_path && (
+        <CardAudio key={card.audio_path} path={card.audio_path} cardId={card.id} large />
+      )}
       {categoryName && (
         <p>
           <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium dark:bg-neutral-800">

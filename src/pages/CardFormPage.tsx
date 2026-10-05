@@ -5,13 +5,13 @@ import { ErrorText } from '@/components/ui/ErrorText';
 import { Spinner } from '@/components/ui/Spinner';
 import { deleteCardPrompt } from '@/domain/cardForm';
 import type { Card, Category } from '@/domain/types';
-import { CardForm, type CardFormValues } from '@/features/cards/CardForm';
+import { CardForm, KEEP_AUDIO, type CardFormValues } from '@/features/cards/CardForm';
 import { useCard } from '@/hooks/useCard';
 import { cardErrorMessage, useCardActions } from '@/hooks/useCardActions';
 import { useCardFilter } from '@/hooks/useCardFilter';
 import { useCategories } from '@/hooks/useCategories';
 
-const EMPTY_TEXT = { title: '', notes: null };
+const EMPTY_TEXT = { title: '', notes: null, audio: KEEP_AUDIO };
 
 function otherId(categories: Category[]): string {
   return categories.find((category) => category.is_system)?.id ?? '';
@@ -57,7 +57,9 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
           status: 'learning',
         }}
         categories={categories}
-        onSave={createCard}
+        onSave={(values) =>
+          createCard(values, values.audio.kind === 'replace' ? values.audio.audio : undefined)
+        }
         onSaved={openCard}
       />
     );
@@ -94,6 +96,7 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
       ? card.category_id
       : otherId(categories),
     status: card.status,
+    audio: KEEP_AUDIO,
   };
 
   return (
@@ -110,7 +113,8 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
         initial={initial}
         categories={categories}
         selfId={card.id}
-        onSave={(values) => updateCard(editedId, values)}
+        audioPath={card.audio_path}
+        onSave={(values) => updateCard(editedId, values, values.audio)}
         onSaved={openCard}
         onDelete={handleDelete}
       />

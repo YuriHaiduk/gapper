@@ -2,7 +2,12 @@ import { LIMITS, PULL_OVERLAP_MS, PULL_PAGE_SIZE } from '@/domain/constants';
 import { uniqueSlug, slugify } from '@/domain/slugify';
 import { nowIso, toIso } from '@/domain/timestamps';
 import type { Card, Category, MetaKey, OutboxEntry } from '@/domain/types';
-import { getAudioBlob, markAudioUploaded } from '@/repositories/local/audioLocalRepo';
+import { baseMime } from '@/domain/audio';
+import {
+  getAudioBlob,
+  markAudioUploaded,
+  putCachedAudio,
+} from '@/repositories/local/audioLocalRepo';
 import {
   applyRemoteCard,
   getCard,
@@ -41,7 +46,11 @@ export type SyncResult = {
   rejected: number;
 };
 
-export type SyncService = { sync(): Promise<SyncResult> };
+export type SyncService = {
+  sync(): Promise<SyncResult>;
+  /** Downloads a recording and caches it locally for offline playback (SPEC §10.4, D47). */
+  downloadAudio: (path: string, cardId: string) => Promise<Blob>;
+};
 
 /** Push passes per run: a pass is repeated only when a row was edited while being pushed. */
 const MAX_PUSH_PASSES = 3;
@@ -141,7 +150,7 @@ export function createSyncService(remote: SyncRemote): SyncService {
     if (entry.op === 'upload') {
       const audio = await getAudioBlob(entry.entity_id);
       if (audio) {
-        await remote.audio.upload(audio.path, audio.blob, audio.mime.split(';')[0] ?? audio.mime);
+        await remote.audio.upload(audio.path, audio.blob, baseMime(audio.mime));
         await markAudioUploaded(audio.path);
       }
     } else {
@@ -255,5 +264,11 @@ export function createSyncService(remote: SyncRemote): SyncService {
     return queued;
   }
 
-  return { sync };
+  async function downloadAudio(path: string, cardId: string): Promise<Blob> {
+    const blob = await remote.audio.download(path);
+    await putCachedAudio({ path, card_id: cardId, blob, mime: blob.type, created_at: nowIso() });
+    return blob;
+  }
+
+  return { sync, downloadAudio };
 }

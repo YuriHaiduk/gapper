@@ -3,7 +3,7 @@ import { countFacets, matchesCardFilter, type CardFacets } from '@/domain/cardFi
 import { duplicateTitleKey } from '@/domain/cardForm';
 import { buildSearchText } from '@/domain/search';
 import { nowIso } from '@/domain/timestamps';
-import type { Card, CardFilter, LocalCard } from '@/domain/types';
+import type { AudioBlobRow, Card, CardFilter, LocalCard } from '@/domain/types';
 import { enqueue } from './outboxRepo';
 
 function toLocal(card: Card): LocalCard {
@@ -68,11 +68,31 @@ export async function countCardFacets(
   return countFacets(await db.cards.toArray(), filter, categoryId);
 }
 
-/** User write: row + outbox entry in one transaction. */
-export async function saveCard(card: Card): Promise<void> {
-  await db.transaction('rw', db.cards, db.outbox, async () => {
+/** Recording changes saved together with a card (SPEC §10.3). */
+export type CardAudioWrite = {
+  /** New recording (`uploaded = 0`), uploaded before the card upsert. */
+  add?: AudioBlobRow;
+  /** Previous recording, deleted from Storage after the card upsert. */
+  removePath?: string;
+};
+
+/**
+ * User write: row + outbox entries in one transaction. With audio: `audio:upload(new)`,
+ * `card:upsert`, then `audio:delete(old)`; the old local blob is dropped at once.
+ */
+export async function saveCard(card: Card, audio: CardAudioWrite = {}): Promise<void> {
+  await db.transaction('rw', db.cards, db.audio_blobs, db.outbox, async () => {
+    if (audio.add) {
+      await db.audio_blobs.put(audio.add);
+      await enqueue('audio', 'upload', audio.add.path);
+    }
     await db.cards.put(toLocal(card));
     await enqueue('card', 'upsert', card.id);
+    if (audio.removePath) {
+      // A pending upload of it is dropped by sync once its blob is gone.
+      await db.audio_blobs.delete(audio.removePath);
+      await enqueue('audio', 'delete', audio.removePath);
+    }
   });
 }
 
@@ -102,9 +122,19 @@ export async function findCardsByTitle(title: string, excludeId?: string): Promi
   return rows.map(toCard);
 }
 
-/** Server truth written locally without an outbox entry. */
+/**
+ * Server truth written locally without an outbox entry. Cached recordings the card no
+ * longer references (replaced on another device) are dropped; unsent ones are kept.
+ */
 export async function applyRemoteCard(card: Card): Promise<void> {
-  await db.cards.put(toLocal(card));
+  await db.transaction('rw', db.cards, db.audio_blobs, async () => {
+    await db.cards.put(toLocal(card));
+    await db.audio_blobs
+      .where('card_id')
+      .equals(card.id)
+      .filter((row) => row.uploaded === 1 && row.path !== card.audio_path)
+      .delete();
+  });
 }
 
 /** Removes the row and its cached audio (after its tombstone is synced). */

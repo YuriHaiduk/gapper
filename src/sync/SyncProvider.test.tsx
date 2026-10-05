@@ -23,7 +23,10 @@ function Status() {
 }
 
 function renderProvider(authValue: AuthContextValue = auth) {
-  const service = { sync: vi.fn<SyncService['sync']>(() => Promise.resolve(OK)) };
+  const service = {
+    sync: vi.fn<SyncService['sync']>(() => Promise.resolve(OK)),
+    downloadAudio: vi.fn<SyncService['downloadAudio']>(),
+  };
   render(
     <AuthContext value={authValue}>
       <SyncProvider service={service}>

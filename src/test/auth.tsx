@@ -13,6 +13,7 @@ const BASENAME = '/gapper/';
 /** Sync service stand-in: never touches the network. */
 export const fakeSyncService: SyncService = {
   sync: () => Promise.resolve({ status: 'ok', pushed: 0, pulled: 0, rejected: 0 }),
+  downloadAudio: () => Promise.reject(new Error('fakeSyncService: no audio')),
 };
 
 type FakeAuthProps = {
@@ -52,7 +53,10 @@ function FakeAuthProvider({ initialStatus, signIn, children }: FakeAuthProps) {
 /** Renders the real route table in memory at `path` (relative to the base path). */
 export function renderApp(
   path: string,
-  options: Omit<FakeAuthProps, 'children'> = { initialStatus: 'signed_in' },
+  {
+    sync = fakeSyncService,
+    ...options
+  }: Omit<FakeAuthProps, 'children'> & { sync?: SyncService } = { initialStatus: 'signed_in' },
 ) {
   const router = createMemoryRouter(routes, {
     basename: BASENAME,
@@ -60,7 +64,7 @@ export function renderApp(
   });
   render(
     <FakeAuthProvider {...options}>
-      <SyncProvider service={fakeSyncService}>
+      <SyncProvider service={sync}>
         <RouterProvider router={router} />
       </SyncProvider>
     </FakeAuthProvider>,

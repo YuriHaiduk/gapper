@@ -34,4 +34,10 @@ export const audioRemoteRepo: AudioRemote = {
     const { error } = await storage.remove(paths);
     if (error) throw fromStorage(error);
   },
+
+  async download(path) {
+    const { data, error } = await getSupabase().storage.from(BUCKET).download(path);
+    if (error) throw fromStorage(error);
+    return data;
+  },
 };

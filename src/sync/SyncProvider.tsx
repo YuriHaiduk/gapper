@@ -84,8 +84,18 @@ export function SyncProvider({ service, children }: SyncProviderProps) {
       pendingCount,
       failedCount,
       syncNow,
+      downloadAudio: service.downloadAudio,
     }),
-    [syncing, lastResult, lastSyncAt, initialSyncDone, pendingCount, failedCount, syncNow],
+    [
+      syncing,
+      lastResult,
+      lastSyncAt,
+      initialSyncDone,
+      pendingCount,
+      failedCount,
+      syncNow,
+      service.downloadAudio,
+    ],
   );
   return <SyncContext value={value}>{children}</SyncContext>;
 }

@@ -85,3 +85,10 @@ export type MetaValues = {
 
 export type MetaKey = keyof MetaValues;
 export type MetaRow = { [K in MetaKey]: { key: K; value: MetaValues[K] } }[MetaKey];
+
+/** A finished recording, not yet persisted (SPEC §10.1). */
+export type RecordedAudio = { blob: Blob; mime: string };
+
+/** What a card edit does with the card's recording (SPEC §20.3). */
+export type AudioChange =
+  { kind: 'keep' } | { kind: 'replace'; audio: RecordedAudio } | { kind: 'remove' };

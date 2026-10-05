@@ -1,15 +1,24 @@
-import { lazy, Suspense, useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { ErrorText } from '@/components/ui/ErrorText';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
 import { sameRichText } from '@/domain/richText';
-import type { Card, CardStatus, Category, RichText } from '@/domain/types';
+import type { AudioChange, Card, CardStatus, Category, RichText } from '@/domain/types';
 import { validateCardInput, type CardFieldErrors } from '@/domain/validation';
 import { cardErrorMessage, cardFieldErrors } from '@/hooks/useCardActions';
 import { useDuplicateTitle } from '@/hooks/useDuplicateTitle';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
+import { AudioRecorder } from '@/features/audio/AudioRecorder';
 import { StatusField } from './StatusField';
 
 // Tiptap (~100 kB gzip) loads only when a form opens, not with the app shell.
@@ -20,14 +29,23 @@ export type CardFormValues = {
   notes: RichText | null;
   category_id: string;
   status: CardStatus;
+  /** What saving does with the recording (SPEC §10.3). */
+  audio: AudioChange;
 };
+
+export const KEEP_AUDIO: AudioChange = { kind: 'keep' };
+
+function sameAudio(a: AudioChange, b: AudioChange): boolean {
+  return a.kind === 'replace' || b.kind === 'replace' ? a === b : a.kind === b.kind;
+}
 
 function sameValues(a: CardFormValues, b: CardFormValues): boolean {
   return (
     a.title === b.title &&
     a.category_id === b.category_id &&
     a.status === b.status &&
-    sameRichText(a.notes, b.notes)
+    sameRichText(a.notes, b.notes) &&
+    sameAudio(a.audio, b.audio)
   );
 }
 
@@ -37,6 +55,8 @@ type CardFormProps = {
   categories: Category[];
   /** The edited card, excluded from the duplicate-title hint. */
   selfId?: string;
+  /** The edited card's saved recording. */
+  audioPath?: string | null;
   onSave: (values: CardFormValues) => Promise<Card>;
   /** Called after a plain Save (not "Save & add another"); navigates away unprompted. */
   onSaved: (card: Card) => void;
@@ -50,6 +70,7 @@ export function CardForm({
   initial,
   categories,
   selfId,
+  audioPath = null,
   onSave,
   onSaved,
   onDelete,
@@ -60,6 +81,8 @@ export function CardForm({
   const [errors, setErrors] = useState<CardFieldErrors>({});
   const [formError, setFormError] = useState<string>();
   const [pending, setPending] = useState(false);
+  // Asking for the microphone or recording: saving waits for Stop (D46).
+  const [recording, setRecording] = useState(false);
   const [savedTitle, setSavedTitle] = useState<string>();
   const [focusRequest, setFocusRequest] = useState(0);
   // Bumped by "Save & add another" to remount (clear) the notes editor.
@@ -87,7 +110,13 @@ export function CardForm({
     if (key in errors) setErrors(({ [key]: _, ...rest }) => rest);
   }
 
+  const setAudio = useCallback((audio: AudioChange) => {
+    setValues((current) => ({ ...current, audio }));
+    setSavedTitle(undefined);
+  }, []);
+
   async function save(addAnother: boolean) {
+    if (recording) return;
     setFormError(undefined);
     const fieldErrors = validateCardInput(values);
     setErrors(fieldErrors);
@@ -156,6 +185,15 @@ export function CardForm({
           )}
         </p>
       </div>
+      <AudioRecorder
+        key={`audio-${resetCount}`}
+        existingPath={audioPath}
+        cardId={selfId}
+        value={values.audio}
+        onChange={setAudio}
+        onBusyChange={setRecording}
+        disabled={pending}
+      />
       <Suspense fallback={<NotesFallback />}>
         <NotesEditor
           key={resetCount}
@@ -208,13 +246,13 @@ export function CardForm({
           {savedTitle && `Saved “${savedTitle}”.`}
         </p>
         <div className="flex gap-2">
-          <Button type="submit" pending={pending} className="flex-1">
+          <Button type="submit" pending={pending} disabled={recording} className="flex-1">
             Save
           </Button>
           {mode === 'create' && (
             <Button
               variant="secondary"
-              disabled={pending}
+              disabled={pending || recording}
               onClick={() => void save(true)}
               className="flex-1"
             >

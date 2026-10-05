@@ -6,6 +6,7 @@ import { getCategory, saveCategory } from '@/repositories/local/categoriesLocalR
 import { getMeta, setMeta } from '@/repositories/local/metaRepo';
 import { countAll, countFailed, enqueue } from '@/repositories/local/outboxRepo';
 import { RemoteError } from '@/repositories/remote/errors';
+import { createCard, updateCard } from '@/services/cardService';
 import { FakeServer } from '@/test/fakeRemote';
 import { makeCard, makeCategory, makeOther, OTHER_ID, USER_ID } from '@/test/factories';
 import { createSyncService, type SyncService } from './syncService';
@@ -283,5 +284,86 @@ describe('single flight', () => {
     ).toHaveLength(1);
     expect(server.calls.filter((call) => call.startsWith('pull:category:'))).toHaveLength(2);
     expect(server.calls.filter((call) => call.startsWith('upsert:'))).toHaveLength(1);
+  });
+});
+
+describe('audio (SPEC §10.3, §10.4)', () => {
+  const recorded = (text: string) => ({ blob: new Blob([text]), mime: 'audio/mp4' });
+
+  beforeEach(async () => {
+    await setMeta('user_id', USER_ID);
+  });
+
+  it('AC-39/AC-40: uploads before the card, deletes the replaced object after it', async () => {
+    const created = await createCard({ title: 'abandon' }, recorded('one'));
+    const first = created.audio_path ?? '';
+    await service.sync();
+    expect(server.audio.has(first)).toBe(true);
+    expect(server.cards.get(created.id)?.audio_path).toBe(first);
+    expect((await db.audio_blobs.get(first))?.uploaded).toBe(1);
+
+    server.calls = [];
+    const replaced = await updateCard(
+      created.id,
+      { title: 'abandon' },
+      { kind: 'replace', audio: recorded('two') },
+    );
+    const second = replaced.audio_path ?? '';
+    await service.sync();
+    expect(pushCalls()).toEqual([
+      `upload:${second}`,
+      `upsert:card:${created.id}`,
+      `remove:${first}`,
+    ]);
+    expect([...server.audio.keys()]).toEqual([second]);
+    expect(server.cards.get(created.id)?.audio_path).toBe(second);
+  });
+
+  it('a recording replaced before it was sent is never uploaded', async () => {
+    const created = await createCard({ title: 'abandon' }, recorded('one'));
+    const replaced = await updateCard(
+      created.id,
+      { title: 'abandon' },
+      { kind: 'replace', audio: recorded('two') },
+    );
+    await service.sync();
+    expect([...server.audio.keys()]).toEqual([replaced.audio_path]);
+    expect(await countAll()).toBe(0);
+  });
+
+  it('downloadAudio caches the blob as uploaded', async () => {
+    const path = `${USER_ID}/card-1/r.m4a`;
+    server.audio.set(path, new Blob(['x'], { type: 'audio/mp4' }));
+    const blob = await service.downloadAudio(path, 'card-1');
+    expect(await blob.text()).toBe('x');
+    expect(await db.audio_blobs.get(path)).toMatchObject({
+      card_id: 'card-1',
+      mime: 'audio/mp4',
+      uploaded: 1,
+    });
+  });
+
+  it('downloadAudio rejects with a typed error when the object is missing', async () => {
+    await expect(service.downloadAudio('nope.m4a', 'card-1')).rejects.toBeInstanceOf(RemoteError);
+  });
+
+  it('a pulled card with a new recording drops the stale cached one', async () => {
+    const old = `${USER_ID}/card-1/old.m4a`;
+    const card = makeCard({ audio_path: old });
+    server.seedCard(card);
+    await service.sync();
+    await db.audio_blobs.put({
+      path: old,
+      card_id: card.id,
+      blob: new Blob(['x']),
+      mime: 'audio/mp4',
+      uploaded: 1,
+      created_at: later(0),
+    });
+
+    server.seedCard({ ...card, audio_path: `${USER_ID}/card-1/new.m4a`, updated_at: later(3) });
+    await service.sync();
+
+    expect(await db.audio_blobs.count()).toBe(0);
   });
 });

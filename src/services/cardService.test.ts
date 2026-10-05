@@ -137,6 +137,64 @@ describe('cardService (T4)', () => {
     });
   });
 
+  describe('audio (SPEC §10.3)', () => {
+    const recorded = { blob: new Blob(['abc'], { type: 'audio/mp4' }), mime: 'audio/mp4' };
+    const OLD = `${USER_ID}/c1/old.m4a`;
+    const input = { title: 'abandon', notes: plainToRichText('покинути'), category_id: LAW.id };
+    const pathPattern = (cardId: string, ext: string) =>
+      new RegExp(`^${USER_ID}/${cardId}/[0-9a-f-]{36}\\.${ext}$`);
+
+    it('create with a recording: blob stored unsent, upload queued before the card', async () => {
+      const card = await createCard({ title: 'abandon' }, recorded);
+      expect(card.audio_path).toMatch(pathPattern(card.id, 'm4a'));
+      const path = card.audio_path ?? '';
+      expect(await db.audio_blobs.get(path)).toMatchObject({
+        card_id: card.id,
+        mime: 'audio/mp4',
+        uploaded: 0,
+        created_at: NOW,
+      });
+      expect((await getCard(card.id))?.audio_path).toBe(path);
+      expect(await outbox()).toEqual([`audio:upload:${path}`, `card:upsert:${card.id}`]);
+    });
+
+    it('replace: new upload, card upsert, then old delete; old local blob dropped', async () => {
+      await applyRemoteCard(makeCard({ id: 'c1', category_id: LAW.id, audio_path: OLD }));
+      await db.audio_blobs.put({
+        path: OLD,
+        card_id: 'c1',
+        blob: new Blob(['old']),
+        mime: 'audio/mp4',
+        uploaded: 1,
+        created_at: T0,
+      });
+      const webm = { blob: new Blob(['x']), mime: 'audio/webm;codecs=opus' };
+      const card = await updateCard('c1', input, { kind: 'replace', audio: webm });
+      expect(card.audio_path).toMatch(pathPattern('c1', 'webm'));
+      expect(card.updated_at).toBe(NOW);
+      expect(await db.audio_blobs.get(OLD)).toBeUndefined();
+      expect(await outbox()).toEqual([
+        `audio:upload:${card.audio_path ?? ''}`,
+        'card:upsert:c1',
+        `audio:delete:${OLD}`,
+      ]);
+    });
+
+    it('remove: audio_path null, card upsert, then old delete', async () => {
+      await applyRemoteCard(makeCard({ id: 'c1', category_id: LAW.id, audio_path: OLD }));
+      const card = await updateCard('c1', input, { kind: 'remove' });
+      expect(card.audio_path).toBeNull();
+      expect(await outbox()).toEqual(['card:upsert:c1', `audio:delete:${OLD}`]);
+    });
+
+    it('keep, or remove without audio, on an unchanged card is a no-op', async () => {
+      await applyRemoteCard(makeCard({ id: 'c1', category_id: LAW.id }));
+      expect((await updateCard('c1', input, { kind: 'keep' })).updated_at).toBe(T0);
+      expect((await updateCard('c1', input, { kind: 'remove' })).updated_at).toBe(T0);
+      expect(await outbox()).toEqual([]);
+    });
+  });
+
   describe('setStatus', () => {
     it('learning → learned → learned → learning (SPEC §7.2)', async () => {
       await applyRemoteCard(makeCard({ id: 'c1' }));

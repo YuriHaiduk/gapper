@@ -1,9 +1,15 @@
+import { audioPath } from '@/domain/audio';
 import { learnedAtFor } from '@/domain/cardStatus';
 import { normalizeRichText, sameRichText } from '@/domain/richText';
 import { nowIso } from '@/domain/timestamps';
-import type { Card, CardStatus } from '@/domain/types';
+import type { AudioChange, Card, CardStatus, RecordedAudio } from '@/domain/types';
 import { validateCardInput, type CardTextInput } from '@/domain/validation';
-import { deleteCardLocally, getCard, saveCard } from '@/repositories/local/cardsLocalRepo';
+import {
+  deleteCardLocally,
+  getCard,
+  saveCard,
+  type CardAudioWrite,
+} from '@/repositories/local/cardsLocalRepo';
 import { getCategory, getOtherCategory } from '@/repositories/local/categoriesLocalRepo';
 import { getMeta } from '@/repositories/local/metaRepo';
 import { CardValidationError, NotFoundError } from './errors';
@@ -43,8 +49,26 @@ async function getExisting(id: string): Promise<Card> {
   return card;
 }
 
-/** New cards are always `learning` (FR-7, D38). */
-export async function createCard(input: CardInput): Promise<Card> {
+const KEEP_AUDIO: AudioChange = { kind: 'keep' };
+
+/** A new Storage object per recording (SPEC §10.3, §19). */
+function newRecording(card: Pick<Card, 'id' | 'user_id'>, audio: RecordedAudio, now: string) {
+  const path = audioPath(card.user_id, card.id, crypto.randomUUID(), audio.mime);
+  return {
+    path,
+    row: {
+      path,
+      card_id: card.id,
+      blob: audio.blob,
+      mime: audio.mime,
+      uploaded: 0,
+      created_at: now,
+    },
+  } as const;
+}
+
+/** New cards are always `learning` (FR-7, D38). An optional recording is saved with them. */
+export async function createCard(input: CardInput, audio?: RecordedAudio): Promise<Card> {
   const fields = await normalize(input);
   // Local copy only: remote upserts omit user_id, the DB fills it from auth.uid() (D29).
   const userId = await getMeta('user_id');
@@ -62,20 +86,36 @@ export async function createCard(input: CardInput): Promise<Card> {
     deleted_at: null,
     server_updated_at: null,
   };
-  await saveCard(card);
-  return card;
+  if (!audio) {
+    await saveCard(card);
+    return card;
+  }
+  const recording = newRecording(card, audio, now);
+  const withAudio = { ...card, audio_path: recording.path };
+  await saveCard(withAudio, { add: recording.row });
+  return withAudio;
 }
 
-/** Edits fields and status; `created_at` never changes. An unchanged card is a no-op. */
-export async function updateCard(id: string, input: CardInput): Promise<Card> {
+/**
+ * Edits fields, status and the recording; `created_at` never changes. An unchanged card
+ * is a no-op (removing audio from a card without audio changes nothing).
+ */
+export async function updateCard(
+  id: string,
+  input: CardInput,
+  audio: AudioChange = KEEP_AUDIO,
+): Promise<Card> {
   const card = await getExisting(id);
   const fields = await normalize(input);
   const status = input.status ?? card.status;
+  const audioChanged =
+    audio.kind === 'replace' || (audio.kind === 'remove' && card.audio_path !== null);
   const unchanged =
     fields.title === card.title &&
     fields.category_id === card.category_id &&
     sameRichText(fields.notes, card.notes) &&
-    status === card.status;
+    status === card.status &&
+    !audioChanged;
   if (unchanged) return card;
   const now = nowIso();
   const updated: Card = {
@@ -85,7 +125,17 @@ export async function updateCard(id: string, input: CardInput): Promise<Card> {
     learned_at: learnedAtFor(card, status, now),
     updated_at: now,
   };
-  await saveCard(updated);
+  const write: CardAudioWrite = {};
+  if (audioChanged) {
+    if (card.audio_path) write.removePath = card.audio_path;
+    updated.audio_path = null;
+    if (audio.kind === 'replace') {
+      const recording = newRecording(card, audio.audio, now);
+      updated.audio_path = recording.path;
+      write.add = recording.row;
+    }
+  }
+  await saveCard(updated, write);
   return updated;
 }
 
