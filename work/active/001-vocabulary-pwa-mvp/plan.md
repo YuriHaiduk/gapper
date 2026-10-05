@@ -19,7 +19,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **09. Audio** — useAudioRecorder (mime selection, 60 s cap, cleanup), AudioRecorder UI, audio_blobs, audioService, upload/delete via outbox, AudioPlayer with download+cache. 👤 test recording on iPhone (after step 12, or via tunnel). AC-38…AC-43. SPEC §10, §19. → [step file](step-09-audio.md)
 - [x] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25. → [step file](step-10-offline-sync-ux.md)
 - [x] **11. PWA** — vite-plugin-pwa config, icons via assets generator, iOS meta tags, update toast (`prompt`), 404.html copy, optional CSP meta. AC-58, AC-61. SPEC §22. → [step file](step-11-pwa.md)
-- [~] **12. 👤 Deployment** — Owner: create GitHub repo `gapper`, push, set Actions variables, Pages source = GitHub Actions, Supabase Site URL. Claude: `deploy.yml`, optional keep-alive workflow, dist secret grep. AC-56, AC-59, AC-60. → [step file](step-12-deployment.md)
+- [x] **12. 👤 Deployment** — Owner: create GitHub repo `gapper`, push, set Actions variables, Pages source = GitHub Actions, Supabase Site URL. Claude: `deploy.yml`, optional keep-alive workflow, dist secret grep. AC-56, AC-59, AC-60. → [step file](step-12-deployment.md)
 - [ ] **13. E2E & acceptance pass** — Playwright critical flow (T10), walk through all AC in SPEC §30 (👤 owner checks on iPhone), fix gaps, update docs, archive this folder.
 
 ## Backlog
@@ -27,9 +27,9 @@ _(items discovered during work that are not yet scheduled)_
 
 - 👤 iPhone check of the filter `<dialog>` bottom sheet (iOS Safari) and of the card detail bottom bar (safe area, long neighbour titles, toggle width on a 375 px screen).
 - 👤 iPhone check of the notes editor: toolbar taps keep the keyboard, lists via toolbar and `- `, paste from Notes/Safari.
-- 👤 iPhone check of the sync UX (after step 12): ⋯ indicator, status line, sync panel bottom sheet, session banner; offline relaunch of the installed app with an expired access token opens with local data.
-- 👤 iPhone check of audio (after step 12): recording in Safari and the installed PWA (permission re-prompt in standalone is expected), m4a playback, 60 s auto-stop, Stop button reach, playback of a desktop (webm) recording if mp4 wasn't available there.
-- 👤 iPhone check of the PWA (after step 12): install from Safari (icon, standalone, opens `/cards`, AC-58), offline relaunch, update toast after a deploy (AC-61), status bar/theme colour in light and dark mode.
+- 👤 iPhone check of the sync UX (site is live): ⋯ indicator, status line, sync panel bottom sheet, session banner; offline relaunch of the installed app with an expired access token opens with local data.
+- 👤 iPhone check of audio (site is live): recording in Safari and the installed PWA (permission re-prompt in standalone is expected), m4a playback, 60 s auto-stop, Stop button reach, playback of a desktop (webm) recording if mp4 wasn't available there.
+- 👤 iPhone check of the PWA (site is live): install from Safari (icon, standalone, opens `/cards`, AC-58), offline relaunch, update toast after a deploy (AC-61), status bar/theme colour in light and dark mode.
 
 ## Open questions
 _(none yet)_
