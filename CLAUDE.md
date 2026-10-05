@@ -66,6 +66,7 @@ Dev runs in Docker (Node 24). `.env` is optional for the dev server — without 
 ```bash
 docker compose run --rm web npm ci     # install deps (node_modules lives in a Docker volume)
 docker compose up                       # dev server → http://localhost:5173/gapper/
+make up / make down                     # same, detached (Makefile)
 docker compose exec web npm run lint
 docker compose exec web npm run typecheck
 docker compose exec web npm run test    # vitest run
