@@ -186,13 +186,13 @@ Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as lear
 
 ### 8.4 Slug generation (client, `domain/slugify.ts`)
 
-1. Unicode NFKD, strip combining marks, lowercase.
+1. Unicode NFKD, strip combining marks **from Latin letters only** (`Café` → `cafe`), recompose (NFC), lowercase.
 2. Replace every run of characters that are not letters/digits (Unicode `\p{L}\p{N}`) with `-`; trim `-` from both ends.
 3. If the result is empty, use `category`.
 4. If the slug is taken by another non-deleted category, append `-2`, `-3`, …
 5. Renaming regenerates the slug. A bookmarked URL with an old slug then shows the "Category not found" state (§25). Acceptable for a personal app.
 
-Non-Latin names keep their letters (e.g. `Їжа` → `їжа`); URLs are percent-encoded by the browser.
+Non-Latin names keep their letters intact, including letters with marks (e.g. `Їжа` → `їжа`, `Йога` → `йога`); URLs are percent-encoded by the browser.
 
 ### 8.5 Lifecycle
 
@@ -360,7 +360,10 @@ Triggers: after sign-in / app start with session; `online` event; `visibilitycha
 Dexie table `outbox`: `{ id (auto-increment), entity: 'category'|'card'|'audio', op: 'upsert'|'delete'|'upload', entity_id: string /* id or storage path */, created_at, attempts, last_error? }`.
 
 - Payload for `upsert` is read from the current local row at push time — consecutive edits of one row coalesce (enqueue skips if an identical pending `entity+op+entity_id` exists).
-- Processing order is FIFO, which preserves dependencies (category before the card that uses it; audio upload before card upsert; card upsert before old-audio delete).
+- Processing order is by **phase**, FIFO within a phase: categories → audio uploads → card upserts (incl. tombstones) → audio deletes. This preserves dependencies (category before the card that uses it; audio upload before card upsert; card upsert before old-audio delete) even when coalescing keeps an older entry for an edited row (D27).
+- An `audio:delete` entry whose `entity_id` ends in `/` (`<user_id>/<card_id>/`) removes every object in that folder (card deletion, §10.3).
+- After a successful upsert the entry is removed and the server row written back **only if** the local row's `updated_at` is unchanged; if the user edited the row while the request was in flight, the entry stays and is pushed again (D28).
+- A new edit of a row whose entry has failed re-arms that entry (`attempts = 0`).
 - On success the entry is removed. On network error: stop the push loop (retry next trigger). On a server rejection (constraint/RLS error): increment `attempts`, store `last_error`, continue with the next entry; after 5 attempts the entry is shown as failed in the sync status panel with "Retry" / "Discard".
 
 ### 15.3 Push

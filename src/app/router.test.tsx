@@ -39,6 +39,14 @@ describe('routing and guards', () => {
     expect(screen.getByRole('link', { name: 'Go to cards' })).toBeInTheDocument();
   });
 
+  it('offers "Sync now" in the overflow menu', async () => {
+    const user = userEvent.setup();
+    renderApp('/cards');
+    await user.click(await screen.findByRole('button', { name: 'Menu' }));
+    await user.click(screen.getByRole('button', { name: 'Sync now' }));
+    expect(screen.queryByRole('button', { name: 'Sync now' })).not.toBeInTheDocument();
+  });
+
   it('opens categories from the overflow menu and signs out to /login', async () => {
     const user = userEvent.setup();
     const app = renderApp('/cards');

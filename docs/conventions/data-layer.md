@@ -31,7 +31,8 @@ Behavior is specified in `docs/SPEC.md` §14–§19. These are the implementatio
 ## Outbox / sync rules
 
 - Outbox entry: `{ id (auto), entity: 'card'|'category'|'audio', op: 'upsert'|'delete', entity_id, created_at, attempts, last_error }`. Payload is read from the current local row at push time (not snapshotted) so multiple edits coalesce.
-- Push order: categories → audio uploads → cards → deletions. Process FIFO, one entry at a time; on success delete the entry; on failure increment `attempts`, keep it, back off.
+- Push order: categories → audio uploads → cards → audio deletes; FIFO within a phase (`sync/pushOrder.ts`), one entry at a time. On success delete the entry; on a server rejection increment `attempts`, keep it, continue; on a network/auth error stop the run. Entries with ≥ 5 attempts wait for Retry/Discard.
+- Remote upserts never send `user_id` (DB default `auth.uid()`) or `server_updated_at` (trigger-owned).
 - Pull: `select … where server_updated_at > cursor order by server_updated_at limit 500`, loop until empty, store cursor per table in a `meta` table.
 - Conflict: compare `updated_at`; newer wins. Local rows with a pending outbox entry are not overwritten by an older remote row.
 - Triggers for sync: app start (after auth), `online` event, `visibilitychange` → visible, after each local write (debounced ~2 s), manual "Sync now".

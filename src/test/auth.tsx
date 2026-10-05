@@ -4,9 +4,16 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { routes } from '@/app/router';
 import { AuthContext, type AuthContextValue, type AuthState } from '@/auth/authContext';
 import type { SignInResult } from '@/auth/authService';
+import { SyncProvider } from '@/sync/SyncProvider';
+import type { SyncService } from '@/sync/syncService';
 
 export const TEST_USER = { id: 'user-1', email: 'owner@example.com' };
 const BASENAME = '/gapper/';
+
+/** Sync service stand-in: never touches the network. */
+export const fakeSyncService: SyncService = {
+  sync: () => Promise.resolve({ status: 'ok', pushed: 0, pulled: 0, rejected: 0 }),
+};
 
 type FakeAuthProps = {
   initialStatus: AuthState['status'];
@@ -53,7 +60,9 @@ export function renderApp(
   });
   render(
     <FakeAuthProvider {...options}>
-      <RouterProvider router={router} />
+      <SyncProvider service={fakeSyncService}>
+        <RouterProvider router={router} />
+      </SyncProvider>
     </FakeAuthProvider>,
   );
   return {

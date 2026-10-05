@@ -1,6 +1,8 @@
 import { RouterProvider } from 'react-router/dom';
 import { AuthProvider } from '@/auth/AuthProvider';
 import type { EnvResult } from '@/lib/env';
+import { getSyncService } from '@/sync';
+import { SyncProvider } from '@/sync/SyncProvider';
 import { ConfigErrorScreen } from './ConfigErrorScreen';
 import { getRouter } from './router';
 
@@ -11,7 +13,9 @@ export function App({ envResult }: AppProps) {
 
   return (
     <AuthProvider>
-      <RouterProvider router={getRouter()} />
+      <SyncProvider service={getSyncService()}>
+        <RouterProvider router={getRouter()} />
+      </SyncProvider>
     </AuthProvider>
   );
 }

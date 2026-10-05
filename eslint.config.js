@@ -20,6 +20,8 @@ export default defineConfig([
       'no-console': ['error', { allow: ['warn', 'error'] }],
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      // Allows `const { omitted, ...rest } = row` to drop fields.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
     },
   },
   {

@@ -1,17 +1,19 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
+import { useSyncStatus } from '@/sync/useSyncStatus';
 
 const ITEM =
   'flex min-h-11 w-full items-center px-4 text-left text-base hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-none dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800';
 
-/** Header ⋯ menu (SPEC §6). "Sync now" is added together with the sync engine. */
+/** Header ⋯ menu (SPEC §6). The sync status indicator/panel comes in step 10. */
 export function OverflowMenu() {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const { signOut } = useAuth();
+  const { syncing, syncNow } = useSyncStatus();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +68,19 @@ export function OverflowMenu() {
             >
               Categories
             </Link>
+          </li>
+          <li>
+            <button
+              type="button"
+              className={ITEM}
+              disabled={syncing}
+              onClick={() => {
+                setOpen(false);
+                void syncNow();
+              }}
+            >
+              {syncing ? 'Syncing…' : 'Sync now'}
+            </button>
           </li>
           <li>
             <button
