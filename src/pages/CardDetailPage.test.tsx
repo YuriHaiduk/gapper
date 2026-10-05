@@ -49,7 +49,7 @@ describe('CardDetailPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('AC-28: shows title, notes, category, status and dates in that order', async () => {
+  it('AC-28: shows title with status, notes, category and dates in that order', async () => {
     await applyRemoteCard(
       makeCard({
         id: 'c1',
@@ -66,7 +66,7 @@ describe('CardDetailPage', () => {
     const category = screen.getByText('Law');
     const status = screen.getByText('Learned');
     const created = screen.getByText('Created');
-    const ordered = [title, notes, category, status, created];
+    const ordered = [title, status, notes, category, created];
     for (let i = 1; i < ordered.length; i++) {
       expect(ordered[i - 1]?.compareDocumentPosition(ordered[i] as Node)).toBe(
         Node.DOCUMENT_POSITION_FOLLOWING,

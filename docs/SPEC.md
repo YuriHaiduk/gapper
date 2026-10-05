@@ -94,12 +94,12 @@ All routes live under the base path `/gapper/` (see §21).
 
 The UI is **strictly monochrome: black & white plus grays**. No accent or hue colors anywhere (no blue/indigo links, no red errors, no amber banners).
 
-- Allowed Tailwind colors: `black`, `white`, `neutral-*` only. Images/icons follow the same rule.
+- Allowed Tailwind colors: `black`, `white`, `neutral-*` only (exception: `green-700` for the Learned pill, D45). Images/icons follow the same rule.
 - Light theme: black text on white (`bg-white`, `text-neutral-900`). Dark theme (`prefers-color-scheme: dark`): inverted — light text on near-black (`bg-neutral-950` = `#0a0a0a`, `text-neutral-100`).
 - Primary button: solid black with white text (dark: solid white with black text). Secondary: outline. Links: underlined text, not colored.
 - Focus ring: `outline-black` (dark: `outline-white`).
 - Errors and warnings are distinguished by weight, a `⚠` glyph and/or a border — never by color (`role="alert"` as before). Offline banner: inverted bar (black on light theme, white on dark).
-- Status pills: `Learning` = outlined, `Learned` = filled (inverted). Pending-sync dot: filled neutral dot.
+- Status pills — **the one exception to monochrome (D45, owner's choice):** `Learning` = black with white text (thin gray ring in dark theme), `Learned` = green (`green-700`) with white text. Pending-sync dot: filled neutral dot.
 - Hierarchy comes from size, weight, spacing and gray levels (`neutral-500/600` muted text, `neutral-200/800` borders).
 
 ### Navigation map
@@ -153,18 +153,18 @@ Duplicate titles are **allowed** (same word may have different senses). When the
 ### 7.4 Card list item
 
 Compact row (≈ 64–72 px):
-- **Title** (semibold, the link to `/cards/:id?<context>`; the link's hit area stretches across the whole row).
+- **Title** (semibold, the link to `/cards/:id?<context>`; the link's hit area stretches across the whole row), with the status pill right-aligned on the same line.
 - Notes preview: the first non-empty line of the notes text (muted, single line, truncated).
-- Meta line: category name · status pill (`Learning` / `Learned`) · 🔊 icon if audio exists · dot if the card has unsynced local changes.
+- Meta line: category name · 🔊 icon if audio exists · dot if the card has unsynced local changes.
 - Created date is not shown in the list (shown on the detail page).
 
 ### 7.5 Card detail page
 
 Order and emphasis:
-1. Title — largest text (≈ 28–32 px), wraps.
+1. Title — largest text (≈ 28–32 px), wraps; status pill right-aligned next to it.
 2. Notes — rendered rich text (paragraphs, bold, italic, lists), normal size. Rendered as React elements from the JSON (`RichTextView`), never as HTML. Hidden if empty.
 3. Audio player — large Play/Pause button (≥ 56 px) + progress. Hidden if no audio. If audio is not cached and the device is offline: "Audio unavailable offline".
-4. Category chip + status pill.
+4. Category chip.
 5. Metadata (small, muted): Created, Updated, Learned on (if learned).
 
 Bottom action bar (thumb zone, fixed, safe-area aware): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. The toggle saves at once (§7.2); a failure shows "Couldn't save.".
@@ -1041,7 +1041,7 @@ Format: Given / When / Then. "Owner" = the signed-in single user. Unless stated,
 - **AC-27** Changing status never changes the card's position in the newest-first ordering.
 
 ### Detail & prev/next
-- **AC-28** The detail page shows title, formatted notes, category, status, audio player (if audio) and created date, in that visual priority.
+- **AC-28** The detail page shows title (with the status pill beside it), formatted notes, audio player (if audio), category and created date, in that visual priority.
 - **AC-29** Given the owner is viewing `/cards?status=learning&category=law` and opens a card, when they press Next, then the next (older) card that is Learning **and** Law opens, and the URL keeps `?status=learning&category=law`.
 - **AC-30** Given the first card of a context, then the Previous control is disabled; given the last card, Next is disabled.
 - **AC-31** The controls show the neighbour titles, e.g. `← evidence` and `contract →`.

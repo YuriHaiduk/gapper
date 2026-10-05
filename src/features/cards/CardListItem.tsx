@@ -13,22 +13,24 @@ type CardListItemProps = {
   onOpen: () => void;
 };
 
-/** Compact list row (SPEC §7.4); the title link's hit area covers the whole row. */
+/** Compact list row (SPEC §7.4): title with the status pill on the right; the link covers the row. */
 export function CardListItem({ card, categoryName, query, pending, onOpen }: CardListItemProps) {
   const preview = richTextPreview(card.notes);
   return (
     <li className="relative flex min-h-16 flex-col justify-center gap-0.5 py-2 has-[a:hover]:bg-neutral-50 dark:has-[a:hover]:bg-neutral-900">
-      <Link
-        to={`/cards/${card.id}${query ? `?${query}` : ''}`}
-        onClick={onOpen}
-        className="font-semibold break-words after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-black dark:focus-visible:after:outline-white"
-      >
-        {card.title}
-      </Link>
+      <div className="flex items-start justify-between gap-2">
+        <Link
+          to={`/cards/${card.id}${query ? `?${query}` : ''}`}
+          onClick={onOpen}
+          className="min-w-0 font-semibold break-words after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-black dark:focus-visible:after:outline-white"
+        >
+          {card.title}
+        </Link>
+        <StatusPill status={card.status} />
+      </div>
       {preview && <p className="truncate text-neutral-600 dark:text-neutral-400">{preview}</p>}
       <p className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
         {categoryName && <span className="truncate">{categoryName}</span>}
-        <StatusPill status={card.status} />
         {card.audio_path && (
           <span role="img" aria-label="Has audio">
             <SpeakerIcon />

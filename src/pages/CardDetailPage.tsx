@@ -35,16 +35,20 @@ function DateRow({ label, iso }: { label: string; iso: string }) {
 function CardDetails({ card, categoryName }: { card: Card; categoryName: string | undefined }) {
   return (
     <article className="flex flex-col gap-6">
-      <h1 className="text-3xl leading-tight font-bold break-words">{card.title}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="min-w-0 text-3xl leading-tight font-bold break-words">{card.title}</h1>
+        <span className="mt-2">
+          <StatusPill status={card.status} />
+        </span>
+      </div>
       {card.notes && <RichTextView doc={card.notes} />}
-      <p className="flex flex-wrap items-center gap-2">
-        {categoryName && (
+      {categoryName && (
+        <p>
           <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium dark:bg-neutral-800">
             {categoryName}
           </span>
-        )}
-        <StatusPill status={card.status} />
-      </p>
+        </p>
+      )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400">
         <DateRow label="Created" iso={card.created_at} />
         <DateRow label="Updated" iso={card.updated_at} />
