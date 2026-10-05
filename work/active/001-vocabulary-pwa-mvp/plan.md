@@ -1,0 +1,28 @@
+# 001 — Vocabulary PWA MVP · Plan
+
+Brief: [brief.md](brief.md) · Spec: [docs/SPEC.md](../../../docs/SPEC.md) · Protocol: [workflow.md](../../../docs/conventions/workflow.md)
+
+Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's action
+
+## Steps
+
+- [x] **00. Docs & workflow skeleton** — CLAUDE.md, docs/SPEC.md, conventions, decisions, work/ structure, git init. → [step file](step-00-docs-and-workflow.md)
+- [ ] **01. Project scaffold** — Vite + React + TS (strict) + Tailwind v4, ESLint/Prettier, Vitest + RTL setup, `@/` alias, `base: /gapper/`, Docker Compose (Node 24, port 5173, node_modules volume), `.env.example`, `src/lib/env.ts`, npm scripts (`dev`, `build`, `preview`, `lint`, `typecheck`, `test`, `format`). Hello-world page under `/gapper/`. SPEC §20, §23.
+- [ ] **02. 👤 Supabase project & database** — Owner: create Supabase project, create owner user (auto-confirm), disable sign-ups, put URL + publishable key in `.env`. Claude: migrations for tables, triggers, seeding, RLS, storage bucket + policies; apply; verify (AC-44, AC-48, AC-55, AC-57 manual checks). SPEC §8, §17–§19.
+- [ ] **03. Auth & routing shell** — Supabase client, `auth/` (AuthProvider, useAuth), LoginPage, RequireAuth, data router with basename, AppLayout (header, overflow menu, offline banner placeholder), NotFound, splash. AC-1…AC-5. SPEC §6, §9, §21.
+- [ ] **04. Data layer & sync engine** — domain types/constants/pure functions (cardFilter, slugify, search normalization, validation), Dexie schema v1, local repositories, remote repositories, outbox, syncService (push/pull/LWW/write-back/stale refetch/tombstones/single-flight), sync triggers, sync status context; tests T1, T6. SPEC §14–§16.
+- [ ] **05. Categories** — categoryService, useCategories, `/categories` page (list with counts, create, rename, delete→Other, Other locked). AC-44…AC-49. SPEC §8.
+- [ ] **06. Card list** — useCardList (visibleCount window), CardListItem, FilterSheet (status + category), SearchBar, Load more, all states, sessionStorage restore + ScrollRestoration. AC-7…AC-19. SPEC §11, §12, §25.
+- [ ] **07. Create / edit / delete card (no audio)** — cardService, CardFormPage (create/edit), validation, default Other, prefilled category from context, duplicate-title hint, Save & add another, delete with confirm. AC-20…AC-24, AC-35…AC-37. SPEC §7.
+- [ ] **08. Card detail & prev/next** — CardDetailPage, status toggle, useAdjacentCards (keyset neighbours), AdjacentNav, keyboard ←/→, replace navigation. AC-25…AC-34. SPEC §7.5, §13.
+- [ ] **09. Audio** — useAudioRecorder (mime selection, 60 s cap, cleanup), AudioRecorder UI, audio_blobs, audioService, upload/delete via outbox, AudioPlayer with download+cache. 👤 test recording on iPhone (after step 12, or via tunnel). AC-38…AC-43. SPEC §10, §19.
+- [ ] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25.
+- [ ] **11. PWA** — vite-plugin-pwa config, icons via assets generator, iOS meta tags, update toast (`prompt`), 404.html copy, optional CSP meta. AC-58, AC-61. SPEC §22.
+- [ ] **12. 👤 Deployment** — Owner: create GitHub repo `gapper`, push, set Actions variables, Pages source = GitHub Actions, Supabase Site URL. Claude: `deploy.yml`, optional keep-alive workflow, dist secret grep. AC-56, AC-59, AC-60.
+- [ ] **13. E2E & acceptance pass** — Playwright critical flow (T10), walk through all AC in SPEC §30 (👤 owner checks on iPhone), fix gaps, update docs, archive this folder.
+
+## Backlog
+_(items discovered during work that are not yet scheduled)_
+
+## Open questions
+_(none yet)_
