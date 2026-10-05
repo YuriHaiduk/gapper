@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
+import { CardDetailHeader } from '@/features/cards/CardDetailHeader';
 import { CardListHeader } from '@/features/cards/CardListHeader';
+import { CardDetailPage } from '@/pages/CardDetailPage';
 import { CardFormPage } from '@/pages/CardFormPage';
 import { CardListPage } from '@/pages/CardListPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
@@ -45,6 +47,11 @@ export const routes: RouteObject[] = [
                   title: 'New card',
                   back: ({ search }) => `/cards${search}`,
                 } satisfies RouteHandle,
+              },
+              {
+                path: 'cards/:id',
+                element: <CardDetailPage />,
+                handle: { title: 'Card', Header: CardDetailHeader } satisfies RouteHandle,
               },
               {
                 path: 'cards/:id/edit',

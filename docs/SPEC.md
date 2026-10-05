@@ -167,7 +167,11 @@ Order and emphasis:
 4. Category chip + status pill.
 5. Metadata (small, muted): Created, Updated, Learned on (if learned).
 
-Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. `Edit` lives in the header. Back control returns to the list with the same context.
+Bottom action bar (thumb zone, fixed, safe-area aware): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. The toggle saves at once (§7.2); a failure shows "Couldn't save.".
+
+Header (D44): Back · `Edit` (`/cards/:id/edit?<query>`) · ⋯. Back links to `/cards?<query>` and restores the list's loaded count and scroll position like browser Back (§12). Dates are shown in the device locale (medium date).
+
+States: skeleton until the card and the categories are read locally; "Card not found." + "Back to cards" (`/cards?<query>`) for an unknown or deleted id.
 
 ### 7.6 Card form
 
@@ -335,7 +339,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
 - "Load more" is rendered only when `hasMore`; while loading the button shows a spinner and is disabled.
 - **Decision:** because all reads hit the local mirror, a growing window over the ordered index is simpler than cursor pages, stays correct when cards are added/removed (live query), and yields exactly the "append 20" behavior.
 - Filter or search change → `visibleCount` resets to 20.
-- Returning to the list from a card (Back) restores `visibleCount` and scroll position: both are stored in `sessionStorage` keyed by the canonical query string (scroll saved when a card is opened, re-applied after the first local read on Back — D36); other pages use React Router's `<ScrollRestoration />`.
+- Returning to the list from a card (browser Back or the card page's header Back, D44) restores `visibleCount` and scroll position: both are stored in `sessionStorage` keyed by the canonical query string (scroll saved when a card is opened, re-applied after the first local read on Back — D36); other pages use React Router's `<ScrollRestoration />`.
 - Queries use the Dexie compound index `[created_at+id]` iterated in reverse with a filter predicate for status/category/search.
 
 ## 13. Previous/next navigation
@@ -346,6 +350,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
   - **Next** = the nearest card *below* (older): largest `(created_at, id)` smaller than the current one that matches the context.
 - Implemented as keyset neighbour queries on `[created_at+id]` (`above(...)` / `below(...).reverse()`) with the same filter predicate as the list — pure predicate shared via `domain/cardFilter.ts`.
 - Works even if the current card no longer matches the context (e.g. it was just marked learned while browsing `Learning`): neighbours are computed from its position.
+- A context with an unknown category slug has no neighbours (both controls disabled), consistent with the list's "Category not found".
 - Controls: `← evidence` (previous) and `contract →` (next) — arrow + neighbour title, truncated to one line. Missing neighbour → control rendered disabled (keeps layout stable) with `aria-disabled`.
 - Navigating prev/next uses `replace: true` so the browser Back button returns to the list, not through every visited card. The query (context) is preserved.
 - Keyboard (desktop): `←` / `→` keys trigger prev/next when focus is not in an input.

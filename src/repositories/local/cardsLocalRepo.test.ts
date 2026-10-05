@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '@/test/factories';
-import { applyRemoteCard, countCardFacets, findCardsByTitle, listCards } from './cardsLocalRepo';
+import {
+  applyRemoteCard,
+  countCardFacets,
+  findCardsByTitle,
+  getAdjacentCards,
+  listCards,
+} from './cardsLocalRepo';
 
 const at = (minute: number) => new Date(Date.UTC(2026, 0, 1, 0, minute)).toISOString();
 
@@ -88,5 +94,68 @@ describe('findCardsByTitle', () => {
     expect(ids(await findCardsByTitle(' ABANDON')).sort()).toEqual(['a', 'b']);
     expect(ids(await findCardsByTitle('abandon', 'a'))).toEqual(['b']);
     expect(await findCardsByTitle('  ')).toEqual([]);
+  });
+});
+
+describe('getAdjacentCards (T3)', () => {
+  const titles = (result: Awaited<ReturnType<typeof getAdjacentCards>>) => [
+    result.prev?.id ?? null,
+    result.next?.id ?? null,
+  ];
+  const position = (i: number) => ({ id: `card-${String(i).padStart(2, '0')}`, created_at: at(i) });
+
+  it('prev = nearest newer, next = nearest older; null at the edges', async () => {
+    await seed(3);
+    expect(titles(await getAdjacentCards(position(1), {}, undefined))).toEqual([
+      'card-02',
+      'card-00',
+    ]);
+    expect(titles(await getAdjacentCards(position(2), {}, undefined))).toEqual([null, 'card-01']);
+    expect(titles(await getAdjacentCards(position(0), {}, undefined))).toEqual(['card-01', null]);
+  });
+
+  it('breaks created_at ties by id like the list', async () => {
+    await seed(3);
+    await applyRemoteCard(makeCard({ id: 'card-zz', created_at: at(1) }));
+    // List order: card-02, card-zz, card-01, card-00
+    expect(
+      titles(await getAdjacentCards({ id: 'card-zz', created_at: at(1) }, {}, undefined)),
+    ).toEqual(['card-02', 'card-01']);
+    expect(titles(await getAdjacentCards(position(1), {}, undefined))).toEqual([
+      'card-zz',
+      'card-00',
+    ]);
+  });
+
+  it('stays within the context and skips deleted cards', async () => {
+    await seed(8, (i) => ({
+      category_id: i % 2 === 0 ? 'law' : 'other',
+      status: i < 4 ? 'learning' : 'learned',
+      learned_at: i < 4 ? null : at(i),
+      deleted_at: i === 6 ? at(9) : null,
+    }));
+    const filter = { status: 'learned', categorySlug: 'law' } as const;
+    // Learned + Law: card-04, card-06 (deleted) → only card-04
+    expect(titles(await getAdjacentCards(position(7), filter, 'law'))).toEqual([null, 'card-04']);
+    expect(titles(await getAdjacentCards(position(4), filter, 'law'))).toEqual([null, null]);
+    expect(titles(await getAdjacentCards(position(3), { status: 'learning' }, undefined))).toEqual([
+      null,
+      'card-02',
+    ]);
+  });
+
+  it('works when the current card no longer matches the context (AC-34)', async () => {
+    await seed(3, (i) => (i === 1 ? { status: 'learned', learned_at: at(5) } : {}));
+    expect(titles(await getAdjacentCards(position(1), { status: 'learning' }, undefined))).toEqual([
+      'card-02',
+      'card-00',
+    ]);
+  });
+
+  it('finds nothing for an unresolved category slug', async () => {
+    await seed(3);
+    expect(
+      titles(await getAdjacentCards(position(1), { categorySlug: 'unknown' }, undefined)),
+    ).toEqual([null, null]);
   });
 });

@@ -15,7 +15,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **06. Card list** — useCardList (visibleCount window), CardListItem, FilterSheet (status + category), SearchBar, Load more, all states, sessionStorage restore + ScrollRestoration; monochrome UI rule applied app-wide. AC-7…AC-19. SPEC §6, §11, §12, §25. → [step file](step-06-card-list.md)
 - [x] **07. Create / edit / delete card (no audio)** — cardService, CardFormPage (create/edit), validation, default Other, prefilled category from context, duplicate-title hint, Save & add another, delete with confirm. AC-20…AC-24, AC-35…AC-37. SPEC §7. → [step file](step-07-card-form.md)
 - [x] **07a. Notes field (rich text)** — owner change: Translation / Example sentence / Example translation → one rich-text `notes` field (Tiptap: bold, italic, bullet/numbered lists); migration merges + drops old columns, Dexie v2, search, list preview, safe renderer. → [step file](step-07a-notes-field.md)
-- [ ] **08. Card detail & prev/next** — CardDetailPage, status toggle, useAdjacentCards (keyset neighbours), AdjacentNav, keyboard ←/→, replace navigation. AC-25…AC-34. SPEC §7.5, §13.
+- [x] **08. Card detail & prev/next** — CardDetailPage, status toggle, useAdjacentCards (keyset neighbours), AdjacentNav, keyboard ←/→, replace navigation. AC-25…AC-34. SPEC §7.5, §13. → [step file](step-08-card-detail.md)
 - [ ] **09. Audio** — useAudioRecorder (mime selection, 60 s cap, cleanup), AudioRecorder UI, audio_blobs, audioService, upload/delete via outbox, AudioPlayer with download+cache. 👤 test recording on iPhone (after step 12, or via tunnel). AC-38…AC-43. SPEC §10, §19.
 - [ ] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25.
 - [ ] **11. PWA** — vite-plugin-pwa config, icons via assets generator, iOS meta tags, update toast (`prompt`), 404.html copy, optional CSP meta. AC-58, AC-61. SPEC §22.
@@ -29,11 +29,9 @@ _(items discovered during work that are not yet scheduled)_
 - Offline cold start with an *expired* access token: confirm supabase-js still emits the stored session (SPEC §9 "opens offline with last session"); if it emits `null`, handle in step 10.
 
 - Different user signs in on a device with local data → wipe Dexie first (SPEC §9). `meta.user_id` is written by `SyncProvider` since step 04; the comparison + wipe belongs to step 10.
-- Step 08: the detail page must link Back to `/cards?<context>` so the list's sessionStorage count/scroll restore (D36) applies; real-device check of the filter `<dialog>` bottom sheet on iOS Safari.
-- Step 08: render notes with `RichTextView` (components/ui); AC-28 updated for notes.
 - Step 11: make sure the lazy `NotesEditor` chunk is precached by the service worker (form must open offline).
+- 👤 iPhone check of the filter `<dialog>` bottom sheet (iOS Safari) and of the card detail bottom bar (safe area, long neighbour titles, toggle width on a 375 px screen).
 - 👤 iPhone check of the notes editor: toolbar taps keep the keyboard, lists via toolbar and `- `, paste from Notes/Safari.
-- Step 08: detail page `Edit` → `/cards/:id/edit?<ctx>`; reuse `useCard`, `useCardActions().setStatus` and the `RouteHandle.back` function form to keep the list context.
 - Sync status UI: `useSyncStatus()` already exposes `syncing`, `lastResult`, `lastSyncAt`, `pendingCount`, `failedCount`, `initialSyncDone` — header indicator/panel in step 10; list "Loading your cards…" uses `initialSyncDone` in step 06.
 
 ## Open questions

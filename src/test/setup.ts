@@ -17,6 +17,11 @@ HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
   this.dispatchEvent(new Event('close'));
 };
 
+// jsdom has no layout; ProseMirror measures ranges when it scrolls the selection into view.
+const emptyRect = () => new DOMRect();
+Range.prototype.getBoundingClientRect = emptyRect;
+Range.prototype.getClientRects = () => Object.assign([], { item: () => null });
+
 beforeEach(async () => {
   await clearDb();
 });

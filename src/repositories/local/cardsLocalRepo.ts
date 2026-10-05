@@ -39,6 +39,27 @@ export async function listCards(
   return rows.map(toCard);
 }
 
+export type AdjacentCards = { prev: Card | null; next: Card | null };
+
+/**
+ * Keyset neighbours in the list order (SPEC §13): `prev` = nearest newer, `next` = nearest
+ * older card matching the context. Computed from the position, so the current card itself
+ * doesn't have to match (AC-34). `categoryId` is the id resolved from `filter.categorySlug`.
+ */
+export async function getAdjacentCards(
+  position: Pick<Card, 'created_at' | 'id'>,
+  filter: CardFilter,
+  categoryId: string | undefined,
+): Promise<AdjacentCards> {
+  const key = [position.created_at, position.id];
+  const matches = (card: LocalCard) => matchesCardFilter(card, filter, categoryId);
+  const [prev, next] = await Promise.all([
+    db.cards.where('[created_at+id]').above(key).filter(matches).first(),
+    db.cards.where('[created_at+id]').below(key).reverse().filter(matches).first(),
+  ]);
+  return { prev: prev ? toCard(prev) : null, next: next ? toCard(next) : null };
+}
+
 /** Faceted filter-sheet counts (SPEC §11.2). */
 export async function countCardFacets(
   filter: CardFilter,
