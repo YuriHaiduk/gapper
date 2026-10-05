@@ -36,7 +36,10 @@ describe('CardFormPage', () => {
       await applyRemoteCard(makeCard({ id: 'old', title: 'older' }));
       const app = renderApp('/cards/new');
       const title = await screen.findByLabelText('Title');
-      expect(title).toHaveFocus();
+      // Focus is set by an effect, which may run after the field is first found.
+      await waitFor(() => {
+        expect(title).toHaveFocus();
+      });
       expect(screen.getByLabelText('Category')).toHaveValue(OTHER_ID);
       expect(screen.queryByRole('radio')).not.toBeInTheDocument();
 
