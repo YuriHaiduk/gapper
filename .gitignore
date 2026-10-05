@@ -13,8 +13,6 @@ dev-dist/
 
 # Tests
 coverage/
-playwright-report/
-test-results/
 
 # Supabase CLI local state
 supabase/.temp/

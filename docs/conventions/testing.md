@@ -7,7 +7,7 @@ Pragmatic, risk-based. No coverage targets; test what would hurt if broken.
 - **Vitest** (jsdom environment) — unit + integration tests.
 - **React Testing Library** + `@testing-library/user-event` — component behavior (query by role/label, not by class).
 - **fake-indexeddb** — Dexie repositories and sync.
-- **Playwright** — a handful of critical E2E flows against `vite preview` with a mocked/fake remote layer or a dedicated test account (decided in step 13).
+- **No automated E2E** (D60): the critical flow is checked by hand by the owner (Mac + iPhone) before a release.
 
 ## What must be tested
 
@@ -21,7 +21,7 @@ Pragmatic, risk-based. No coverage targets; test what would hurt if broken.
 | Audio recorder hook (MediaRecorder/getUserMedia mocked) | unit |
 | Login form, protected route redirect | component |
 | Card list: render, load more appends, empty/error states | component |
-| E2E: login → list → create → detail → next → mark learned | Playwright |
+| Critical flow: login → list → create → detail → next → mark learned | manual (owner) |
 
 ## Rules
 

@@ -29,7 +29,7 @@ Communicate with the owner in **Ukrainian**; write code, comments and docs in **
 
 ## Stack (fixed)
 
-Node 24 LTS · Vite · React · TypeScript (strict) · Tailwind CSS · React Router · Dexie (IndexedDB) + dexie-react-hooks · @supabase/supabase-js · Tiptap (notes editor) · vite-plugin-pwa (Workbox) · Vitest + React Testing Library + fake-indexeddb · Playwright (few E2E) · ESLint + Prettier · Docker Compose (local dev only) · GitHub Actions → GitHub Pages.
+Node 24 LTS · Vite · React · TypeScript (strict) · Tailwind CSS · React Router · Dexie (IndexedDB) + dexie-react-hooks · @supabase/supabase-js · Tiptap (notes editor) · vite-plugin-pwa (Workbox) · Vitest + React Testing Library + fake-indexeddb · ESLint + Prettier · Docker Compose (local dev only) · GitHub Actions → GitHub Pages.
 
 ## Architecture in one picture
 
@@ -73,7 +73,6 @@ docker compose exec web npm run build   # tsc -b && vite build (+ sw.js, manifes
 docker compose exec web npm run format  # prettier --write (format:check in CI)
 # one-off checks without a running server: docker compose run --rm web npm run <script>
 # add a dependency: docker compose run --rm web npm install <pkg>  (updates package-lock.json)
-npx playwright test                     # E2E, run on host (step 13)
 ```
 
 Supabase (CLI on host, pinned): `npx supabase@2.119.0 db push` / `test db --linked` (after owner `login` + `link`) — see `docs/conventions/supabase.md`.

@@ -741,7 +741,7 @@ create policy audio_delete on storage.objects for delete to authenticated
 | Backend SDK | `@supabase/supabase-js` v2 |
 | Rich text | Tiptap 3 (`@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`), notes editor only, lazy-loaded chunk (D43) |
 | PWA | `vite-plugin-pwa` (Workbox `generateSW`) |
-| Tests | Vitest, React Testing Library, `@testing-library/user-event`, jsdom, `fake-indexeddb`, Playwright |
+| Tests | Vitest, React Testing Library, `@testing-library/user-event`, jsdom, `fake-indexeddb` |
 | Quality | ESLint (flat config, typescript-eslint, react-hooks, jsx-a11y), Prettier |
 
 No state-management library, no UI kit, no form library (the notes editor is the one rich-text exception), no data-fetching library (Dexie live queries replace them). Icons: inline SVG components (no icon package) unless more than ~15 icons are needed.
@@ -812,7 +812,6 @@ gapper/
     repositories/local/  repositories/remote/
     sync/  db/  auth/  domain/  lib/  styles/  test/
   supabase/migrations/
-  e2e/
   .github/workflows/deploy.yml, supabase-keep-alive.yml
   docker-compose.yml  Dockerfile.dev (if needed)  .env.example
   vite.config.ts  pwa-assets.config.ts  tsconfig*.json  eslint.config.js  .prettierrc  index.html  package.json
@@ -896,7 +895,7 @@ VitePWA({
 Docker is for **local development only**; production is static files on GitHub Pages.
 
 - `docker-compose.yml`, service `web`:
-  - image `node:24-bookworm-slim` (Debian base for easier native deps/Playwright compatibility);
+  - image `node:24-bookworm-slim` (Debian base for easier native deps);
   - `working_dir: /app`; bind mount `.:/app`; **named volume** for `/app/node_modules` (avoids macOS/Linux binary mismatch);
   - `ports: ["5173:5173"]`; command `npm run dev -- --host 0.0.0.0`;
   - `env_file: .env` (optional: true);
@@ -986,7 +985,7 @@ See `docs/conventions/testing.md` for rules. Coverage priorities:
 | T7 | useAudioRecorder: state machine, mime selection, 60 s auto-stop, track cleanup, denied | unit (mocked MediaRecorder/getUserMedia) |
 | T8 | LoginPage + RequireAuth redirects | component |
 | T9 | CardListPage: renders 20, Load more appends, empty states per filter | component |
-| T10 | E2E: login → create card w/o category (→ Other) → list → detail → mark learned → filter Learned → next/prev | Playwright |
+| T10 | E2E: login → create card w/o category (→ Other) → list → detail → mark learned → filter Learned → next/prev | manual (owner, Mac + iPhone, step 13; D60) |
 | T11 | SQL: migration applies cleanly; manual checklist for RLS (other user can't read), Other protection, category delete reassign | manual (step 2), documented |
 
 ## 28. MVP scope

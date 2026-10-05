@@ -20,7 +20,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 - [x] **10. Offline hardening & sync UX** — online/offline banner, pending indicators, sync status panel (failed entries Retry/Discard), session-expired banner, logout confirmation + DB wipe, periodic sync. AC-6, AC-50…AC-54. SPEC §9, §15.6, §25. → [step file](step-10-offline-sync-ux.md)
 - [x] **11. PWA** — vite-plugin-pwa config, icons via assets generator, iOS meta tags, update toast (`prompt`), 404.html copy, optional CSP meta. AC-58, AC-61. SPEC §22. → [step file](step-11-pwa.md)
 - [x] **12. 👤 Deployment** — Owner: create GitHub repo `gapper`, push, set Actions variables, Pages source = GitHub Actions, Supabase Site URL. Claude: `deploy.yml`, optional keep-alive workflow, dist secret grep. AC-56, AC-59, AC-60. → [step file](step-12-deployment.md)
-- [ ] **13. E2E & acceptance pass** — Playwright critical flow (T10), walk through all AC in SPEC §30 (👤 owner checks on iPhone), fix gaps, update docs, archive this folder.
+- [~] **13. 👤 Acceptance pass** — walk through all AC in SPEC §30 (👤 owner checks on iPhone), fix gaps, update docs, archive this folder. Playwright E2E dropped (D60). → [step file](step-13-e2e-acceptance.md)
 
 ## Backlog
 _(items discovered during work that are not yet scheduled)_

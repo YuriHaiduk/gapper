@@ -30,7 +30,7 @@
 
 ## Dependencies
 
-Allowed baseline (see `SPEC.md` §20): react, react-dom, react-router, @supabase/supabase-js, dexie, dexie-react-hooks, tailwindcss, vite-plugin-pwa (+ workbox), dev: typescript, vite, vitest, @testing-library/*, jsdom, fake-indexeddb, eslint, prettier, @playwright/test.
+Allowed baseline (see `SPEC.md` §20): react, react-dom, react-router, @supabase/supabase-js, dexie, dexie-react-hooks, tailwindcss, vite-plugin-pwa (+ workbox), dev: typescript, vite, vitest, @testing-library/*, jsdom, fake-indexeddb, eslint, prettier.
 
 Any other dependency requires: a real need, a check that ~20 lines of own code can't do it, small bundle impact, active maintenance, and a line in `decisions.md`. Ask the owner for runtime dependencies.
 

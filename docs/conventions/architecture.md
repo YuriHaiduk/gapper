@@ -49,7 +49,6 @@ src/
 supabase/
   migrations/     timestamped SQL migrations
 public/           icons, apple-touch-icon, robots.txt
-e2e/              Playwright specs
 ```
 
 Keep it flat. Create a folder only when it has a second file.
