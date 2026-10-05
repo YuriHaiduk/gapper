@@ -133,7 +133,7 @@ function ListSkeleton() {
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
-          className="flex min-h-16 flex-col justify-center gap-2 py-2 motion-safe:animate-pulse"
+          className="flex min-h-16 flex-col justify-center gap-2 px-2.5 py-2 motion-safe:animate-pulse"
         >
           <div className="h-4 w-1/3 rounded bg-neutral-200 dark:bg-neutral-800" />
           <div className="h-3 w-1/2 rounded bg-neutral-100 dark:bg-neutral-900" />

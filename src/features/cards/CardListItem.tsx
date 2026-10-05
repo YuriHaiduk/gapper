@@ -17,7 +17,7 @@ type CardListItemProps = {
 export function CardListItem({ card, categoryName, query, pending, onOpen }: CardListItemProps) {
   const preview = richTextPreview(card.notes);
   return (
-    <li className="relative flex min-h-16 flex-col justify-center gap-0.5 py-2 has-[a:hover]:bg-neutral-50 dark:has-[a:hover]:bg-neutral-900">
+    <li className="relative flex min-h-16 flex-col justify-center gap-0.5 px-2.5 py-2 has-[a:hover]:bg-neutral-50 dark:has-[a:hover]:bg-neutral-900">
       <div className="flex items-start justify-between gap-2">
         <Link
           to={`/cards/${card.id}${query ? `?${query}` : ''}`}
