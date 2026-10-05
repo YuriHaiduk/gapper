@@ -42,3 +42,4 @@ Make sync state visible and recoverable (status line, pending indicator, failed-
 - D52: sync indicator on the ⋯ button, status line in the menu; `Sync now` disabled offline; "Synced · N min ago" computed when the menu opens (pure render).
 - D53: Discard restores the server row; Retry re-arms + syncs; panel has Retry all when > 1.
 - Periodic sync: `setInterval(PERIODIC_SYNC_MS)` while signed in, fires only when visible (and online via `autoSync`); `SyncProvider` takes `periodMs` for tests.
+- Owner's manual check found: opening the edit form offline → "Something went wrong" (the lazy `NotesEditor` chunk was never fetched, the rejected import failed the route). Fix D54: `NotesField` loads the chunk with a retry-safe loader, `AppLayout` preloads it, a failed load shows the notes read-only + Retry; test `CardFormPage.offline.test.tsx`. 263 tests pass; NotesEditor chunk still separate (125 kB gzip).

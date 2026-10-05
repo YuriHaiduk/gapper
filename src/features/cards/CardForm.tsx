@@ -1,12 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type SyntheticEvent,
-} from 'react';
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { ErrorText } from '@/components/ui/ErrorText';
@@ -19,10 +11,8 @@ import { cardErrorMessage, cardFieldErrors } from '@/hooks/useCardActions';
 import { useDuplicateTitle } from '@/hooks/useDuplicateTitle';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { AudioRecorder } from '@/features/audio/AudioRecorder';
+import { NotesField } from './NotesField';
 import { StatusField } from './StatusField';
-
-// Tiptap (~100 kB gzip) loads only when a form opens, not with the app shell.
-const NotesEditor = lazy(() => import('./NotesEditor'));
 
 export type CardFormValues = {
   title: string;
@@ -194,18 +184,16 @@ export function CardForm({
         onBusyChange={setRecording}
         disabled={pending}
       />
-      <Suspense fallback={<NotesFallback />}>
-        <NotesEditor
-          key={resetCount}
-          label="Notes"
-          value={values.notes}
-          error={errors.notes}
-          disabled={pending}
-          onChange={(notes) => {
-            set('notes', notes);
-          }}
-        />
-      </Suspense>
+      <NotesField
+        key={resetCount}
+        label="Notes"
+        value={values.notes}
+        error={errors.notes}
+        disabled={pending}
+        onChange={(notes) => {
+          set('notes', notes);
+        }}
+      />
       <Select
         label="Category"
         value={values.category_id}
@@ -262,19 +250,5 @@ export function CardForm({
         </div>
       </div>
     </form>
-  );
-}
-
-function NotesFallback() {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium">Notes</span>
-      <div
-        role="status"
-        className="min-h-52 rounded-lg border border-neutral-300 px-3 py-2 text-neutral-500 dark:border-neutral-700"
-      >
-        Loading editor…
-      </div>
-    </div>
   );
 }

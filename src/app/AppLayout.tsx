@@ -1,7 +1,8 @@
-import type { ComponentType, ReactNode } from 'react';
+import { useEffect, type ComponentType, type ReactNode } from 'react';
 import { Link, Outlet, useLocation, useMatches, type Params } from 'react-router';
 import { HeaderRow } from '@/components/ui/HeaderRow';
 import { ICON_BUTTON } from '@/components/ui/styles';
+import { preloadNotesEditor } from '@/features/cards/NotesField';
 import { OfflineBanner } from './OfflineBanner';
 import { OverflowMenu } from './OverflowMenu';
 import { SessionBanner } from './SessionBanner';
@@ -27,6 +28,9 @@ export function AppLayout() {
   const match = matches.findLast((item) => isRouteHandle(item.handle));
   const handle = match && isRouteHandle(match.handle) ? match.handle : undefined;
   const Header = handle?.Header;
+
+  // The card form must open offline later in the session (D54).
+  useEffect(preloadNotesEditor, []);
   const back =
     typeof handle?.back === 'function'
       ? handle.back({ params: match?.params ?? {}, search })

@@ -36,7 +36,7 @@ function contentAttributes(labelId: string, errorId: string, error: string | und
   };
 }
 
-type NotesEditorProps = {
+export type NotesEditorProps = {
   label: string;
   value: RichText | null;
   onChange: (value: RichText | null) => void;

@@ -178,7 +178,7 @@ States: skeleton until the card and the categories are read locally; "Card not f
 
 `/cards/new` and `/cards/:id/edit` share `CardFormPage`. The list context (`?status&category&q`) stays in the form's URL: the FAB links to `/cards/new?<list query>`, and the header Back link returns to `/cards?<query>` (create) or `/cards/:id?<query>` (edit).
 
-- Fields, top to bottom: Title, **Pronunciation** (audio recorder, §10.1; right under the title so the word is recorded as soon as it is typed, D46), **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
+- Fields, top to bottom: Title, **Pronunciation** (audio recorder, §10.1; right under the title so the word is recorded as soon as it is typed, D46), **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded and warmed in the background once the app shell mounts; if its chunk can't load — offline before it was ever fetched — the field shows the notes read-only with "The notes editor couldn't load…" + Retry, and the rest of the form still saves with the notes unchanged, D54), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
 - **Category select** has no blank option (D37). Create defaults to the context category (`?category=` slug) or `Other`. To clear a card's category, pick `Other`. The service also maps an empty, unknown or deleted category id to `Other`.
 - **New cards** are always `learning` (D38). Status changes on the edit form follow §7.2.
 - Validation runs on submit (§7.1). Errors appear under the field, and the first invalid field gets focus. The duplicate-title hint shows under Title while typing.
@@ -945,7 +945,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 | Card list | skeleton (only before first local read) | All: "No cards yet." + "Add your first card"; Learning: "No learning cards yet."; Learned: "No learned cards yet."; Category: "No cards in this category."; Search: "No cards match “x”."; unknown slug: "Category not found." + "Show all cards" | — (local reads) | banner only |
 | Load more | button spinner | button hidden when no more | — | works (local) |
 | Card detail | skeleton | "Card not found." + back to list (deleted/unknown id) | — | audio: "Audio unavailable offline" |
-| Card form | Save spinner, disabled | — | field errors; "Couldn't save." | saves locally; banner explains sync later |
+| Card form | Save spinner, disabled; "Loading editor…" in the Notes field | — | field errors; "Couldn't save."; editor chunk failed: notes read-only + Retry (D54) | saves locally; banner explains sync later |
 | Audio recorder | "Allow microphone access…" | — | denied: "Microphone access is blocked. Enable it in Settings → Safari → Microphone." unsupported: "Recording isn't supported in this browser." other: "Couldn't record. Try again." Player: "Loading audio…"; download failed: "Couldn't load audio." + Retry | recording works offline |
 | Categories | skeleton | only Other → "Create categories to organize your cards." | inline validation | works (local) |
 | Sync | header "Syncing…" | — | "Sync error" panel with failed items, Retry/Discard | "Offline — N changes pending" |
