@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -6,7 +7,10 @@ import { PlusIcon } from '@/components/ui/icons';
 import { Spinner } from '@/components/ui/Spinner';
 import { FOCUS_RING } from '@/components/ui/styles';
 import { emptyListMessage } from '@/domain/cardFilter';
+import { deleteCardPrompt } from '@/domain/cardForm';
+import type { Card } from '@/domain/types';
 import { CardListItem } from '@/features/cards/CardListItem';
+import { cardErrorMessage, useCardActions } from '@/hooks/useCardActions';
 import { useCardFilter } from '@/hooks/useCardFilter';
 import { useCardList } from '@/hooks/useCardList';
 import { useListScrollRestore } from '@/hooks/useListScrollRestore';
@@ -20,6 +24,19 @@ export function CardListPage() {
   const list = useCardList(filter, query);
   const pendingIds = usePendingCardIds();
   const saveScroll = useListScrollRestore(query, list.cards !== undefined);
+  const { deleteCard } = useCardActions();
+  const [deleteError, setDeleteError] = useState<string>();
+
+  // Same confirmation as the edit page (SPEC §7.3, D62); the live list drops the row itself.
+  async function handleDelete(card: Card) {
+    setDeleteError(undefined);
+    if (!window.confirm(deleteCardPrompt(card.title))) return;
+    try {
+      await deleteCard(card.id);
+    } catch (error) {
+      setDeleteError(cardErrorMessage(error));
+    }
+  }
 
   return (
     <>
@@ -29,6 +46,8 @@ export function CardListPage() {
         list={list}
         pendingIds={pendingIds}
         onOpen={saveScroll}
+        onDelete={(card) => void handleDelete(card)}
+        deleteError={deleteError}
       />
       <Link
         to={`/cards/new${query ? `?${query}` : ''}`}
@@ -47,9 +66,19 @@ type ContentProps = {
   list: ReturnType<typeof useCardList>;
   pendingIds: Set<string>;
   onOpen: () => void;
+  onDelete: (card: Card) => void;
+  deleteError: string | undefined;
 };
 
-function CardListContent({ filter, query, list, pendingIds, onOpen }: ContentProps) {
+function CardListContent({
+  filter,
+  query,
+  list,
+  pendingIds,
+  onOpen,
+  onDelete,
+  deleteError,
+}: ContentProps) {
   const { initialSyncDone, lastResult, syncing, syncNow } = useSyncStatus();
   const online = useOnlineStatus();
 
@@ -102,6 +131,7 @@ function CardListContent({ filter, query, list, pendingIds, onOpen }: ContentPro
 
   return (
     <div className="flex flex-col gap-4 pt-5 pb-20">
+      {deleteError && <ErrorText role="alert">{deleteError}</ErrorText>}
       <ul aria-label="Cards" className="flex flex-col gap-5">
         {list.cards.map((card) => (
           <CardListItem
@@ -111,6 +141,9 @@ function CardListContent({ filter, query, list, pendingIds, onOpen }: ContentPro
             query={query}
             pending={pendingIds.has(card.id)}
             onOpen={onOpen}
+            onDelete={() => {
+              onDelete(card);
+            }}
           />
         ))}
       </ul>

@@ -87,6 +87,14 @@ function StrokeIcon({ className = 'size-5', children }: IconProps & { children: 
   );
 }
 
+export function TrashIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+    </StrokeIcon>
+  );
+}
+
 export function BulletListIcon(props: IconProps) {
   return (
     <StrokeIcon {...props}>

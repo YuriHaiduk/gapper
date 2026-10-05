@@ -1,12 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PAGE_SIZE } from '@/domain/constants';
 import { plainToRichText } from '@/domain/richText';
 import type { Card } from '@/domain/types';
-import { applyRemoteCard, saveCard } from '@/repositories/local/cardsLocalRepo';
+import { applyRemoteCard, getCard, saveCard } from '@/repositories/local/cardsLocalRepo';
 import { applyRemoteCategory } from '@/repositories/local/categoriesLocalRepo';
 import { setMeta } from '@/repositories/local/metaRepo';
+import { countAll } from '@/repositories/local/outboxRepo';
 import { renderApp } from '@/test/auth';
 import { makeCard, makeCategory, makeOther, OTHER_ID, USER_ID } from '@/test/factories';
 
@@ -110,6 +111,42 @@ describe('CardListPage', () => {
     expect(
       within(link.closest('li') as HTMLElement).getByRole('img', { name: 'Not synced yet' }),
     ).toBeInTheDocument();
+  });
+
+  describe('delete from the list (D62)', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('asks like the edit page, then removes the card', async () => {
+      const user = userEvent.setup();
+      await seed(2);
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      renderApp('/cards');
+
+      await user.click(await screen.findByRole('button', { name: 'Delete “word 00”' }));
+
+      expect(confirm).toHaveBeenCalledWith('Delete “word 00”? This cannot be undone.');
+      await waitFor(async () => {
+        expect(await titles()).toEqual(['word 01']);
+      });
+      expect((await getCard('card-00'))?.deleted_at).not.toBeNull();
+      // The tombstone and the card's audio folder delete (D29).
+      expect(await countAll()).toBe(2);
+    });
+
+    it('keeps the card when the confirmation is cancelled', async () => {
+      const user = userEvent.setup();
+      await seed(1);
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      renderApp('/cards');
+
+      await user.click(await screen.findByRole('button', { name: 'Delete “word 00”' }));
+
+      expect(await titles()).toEqual(['word 00']);
+      expect((await getCard('card-00'))?.deleted_at).toBeNull();
+      expect(await countAll()).toBe(0);
+    });
   });
 
   it('AC-13/AC-14: the filter sheet updates the URL, list and header label', async () => {

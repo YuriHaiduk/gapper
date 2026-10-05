@@ -155,6 +155,7 @@ Duplicate titles are **allowed** (same word may have different senses). When the
 
 Compact row (≈ 64–72 px), each in its own bordered box (`rounded-lg`, `neutral-200` / dark `neutral-800`) with 20 px between rows and 20 px above the first row (the list doesn't touch the header/filter bar):
 - **Title** (semibold, the link to `/cards/:id?<context>`; the link's hit area stretches across the whole row), with the status pill right-aligned on the same line.
+- **Delete** (D62): a trash icon button (44 px target, labelled "Delete “<title>”") under the status pill on the right, above the row link. Same confirmation and soft delete as on the edit page (§7.3); the row disappears at once; a failure shows "Couldn't save." above the list.
 - Notes are **not** shown in the list (owner's choice) — only on the detail page. Search still matches them (§11.3).
 - Meta line: category name · 🔊 icon if audio exists · dot if the card has unsynced local changes.
 - Created date is not shown in the list (shown on the detail page).
