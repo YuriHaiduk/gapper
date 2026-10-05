@@ -31,7 +31,7 @@ Record a pronunciation on the card form (≤ 60 s), persist it locally with the 
 
 ## Verification
 - [x] npm run lint / typecheck / test / build / format:check — all pass (231 tests, 32 files; full suite run 3× without flakes); build: app chunk 699 kB / 206 kB gzip (+3 kB gzip), `NotesEditor` chunk unchanged
-- [ ] Manual check — not done by Claude (signing in needs the owner's credentials). Owner, desktop browser at `http://localhost:5173/gapper/` (mic works on localhost): record → Stop → preview → Save → detail plays; after sync the object exists in Storage `audio/<uid>/<card>/…` (AC-39); Replace → old object gone (AC-40); DevTools offline → the played recording still plays (AC-43); block the mic → message, Save works (AC-42)
+- [x] Manual check — owner, 2026-10-05, on the Mac (passed). Owner, desktop browser at `http://localhost:5173/gapper/` (mic works on localhost): record → Stop → preview → Save → detail plays; after sync the object exists in Storage `audio/<uid>/<card>/…` (AC-39); Replace → old object gone (AC-40); DevTools offline → the played recording still plays (AC-43); block the mic → message, Save works (AC-42)
 
 ## Notes / decisions
 - D46: recorder right under Title; Save disabled while requesting/recording; red pulsing dot (second hue exception).
