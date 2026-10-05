@@ -1,4 +1,6 @@
 import { LIMITS } from './constants';
+import { richTextBytes, richTextToPlain } from './richText';
+import type { RichText } from './types';
 
 /** Trimmed text, or null when empty (SPEC §7.1). */
 export function normalizeOptional(value: string | null | undefined): string | null {
@@ -14,9 +16,7 @@ export function tooLongMessage(max: number): string {
 
 export type CardTextInput = {
   title: string;
-  translation?: string | null;
-  example_sentence?: string | null;
-  example_sentence_translation?: string | null;
+  notes?: RichText | null;
 };
 
 export type CardTextField = keyof CardTextInput;
@@ -29,14 +29,11 @@ export function validateCardInput(input: CardTextInput): CardFieldErrors {
   if (title === '') errors.title = REQUIRED_TITLE;
   else if (title.length > LIMITS.title) errors.title = tooLongMessage(LIMITS.title);
 
-  for (const field of [
-    'translation',
-    'example_sentence',
-    'example_sentence_translation',
-  ] as const) {
-    const value = normalizeOptional(input[field]);
-    if (value !== null && value.length > LIMITS[field])
-      errors[field] = tooLongMessage(LIMITS[field]);
+  if (input.notes) {
+    const tooLong =
+      richTextToPlain(input.notes).length > LIMITS.notes ||
+      richTextBytes(input.notes) > LIMITS.notesBytes;
+    if (tooLong) errors.notes = tooLongMessage(LIMITS.notes);
   }
   return errors;
 }

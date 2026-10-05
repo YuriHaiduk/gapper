@@ -11,12 +11,7 @@ import { cardErrorMessage, useCardActions } from '@/hooks/useCardActions';
 import { useCardFilter } from '@/hooks/useCardFilter';
 import { useCategories } from '@/hooks/useCategories';
 
-const EMPTY_TEXT = {
-  title: '',
-  translation: '',
-  example_sentence: '',
-  example_sentence_translation: '',
-};
+const EMPTY_TEXT = { title: '', notes: null };
 
 function otherId(categories: Category[]): string {
   return categories.find((category) => category.is_system)?.id ?? '';
@@ -94,9 +89,7 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   const initial: CardFormValues = {
     title: card.title,
-    translation: card.translation ?? '',
-    example_sentence: card.example_sentence ?? '',
-    example_sentence_translation: card.example_sentence_translation ?? '',
+    notes: card.notes,
     category_id: categories.some((category) => category.id === card.category_id)
       ? card.category_id
       : otherId(categories),

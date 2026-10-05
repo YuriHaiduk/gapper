@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PAGE_SIZE } from '@/domain/constants';
+import { plainToRichText } from '@/domain/richText';
 import type { Card } from '@/domain/types';
 import { applyRemoteCard, saveCard } from '@/repositories/local/cardsLocalRepo';
 import { applyRemoteCategory } from '@/repositories/local/categoriesLocalRepo';
@@ -187,7 +188,7 @@ describe('CardListPage', () => {
       makeCard({
         id: 'b',
         title: 'evidence',
-        example_sentence: 'No proof.',
+        notes: plainToRichText('Example: no proof.'),
         created_at: at(2),
         ...learned,
       }),

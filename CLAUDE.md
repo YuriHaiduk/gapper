@@ -1,6 +1,6 @@
 # CLAUDE.md — Gapper
 
-Private, single-owner vocabulary-learning **PWA** (iPhone-first, works on desktop). Cards = word/phrase, translation, example sentence + translation, personal audio recording, category, status (`learning` / `learned`). Offline-first, hosted as static files on GitHub Pages (`/gapper/`), backend is Supabase (Postgres + Auth + Storage) called directly from the browser.
+Private, single-owner vocabulary-learning **PWA** (iPhone-first, works on desktop). Cards = word/phrase, rich-text notes (examples, translations), personal audio recording, category, status (`learning` / `learned`). Offline-first, hosted as static files on GitHub Pages (`/gapper/`), backend is Supabase (Postgres + Auth + Storage) called directly from the browser.
 
 ## Start every session here
 
@@ -29,7 +29,7 @@ Communicate with the owner in **Ukrainian**; write code, comments and docs in **
 
 ## Stack (fixed)
 
-Node 24 LTS · Vite · React · TypeScript (strict) · Tailwind CSS · React Router · Dexie (IndexedDB) + dexie-react-hooks · @supabase/supabase-js · vite-plugin-pwa (Workbox) · Vitest + React Testing Library + fake-indexeddb · Playwright (few E2E) · ESLint + Prettier · Docker Compose (local dev only) · GitHub Actions → GitHub Pages.
+Node 24 LTS · Vite · React · TypeScript (strict) · Tailwind CSS · React Router · Dexie (IndexedDB) + dexie-react-hooks · @supabase/supabase-js · Tiptap (notes editor) · vite-plugin-pwa (Workbox) · Vitest + React Testing Library + fake-indexeddb · Playwright (few E2E) · ESLint + Prettier · Docker Compose (local dev only) · GitHub Actions → GitHub Pages.
 
 ## Architecture in one picture
 

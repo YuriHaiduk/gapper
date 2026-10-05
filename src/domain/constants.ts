@@ -7,9 +7,9 @@ export const CARD_STATUSES: readonly CardStatus[] = ['learning', 'learned'];
 /** Max lengths after trimming (SPEC §7.1, §8.1, §11.1). */
 export const LIMITS = {
   title: 200,
-  translation: 500,
-  example_sentence: 1000,
-  example_sentence_translation: 1000,
+  /** Notes: plain-text characters; the JSON document is also capped (`notesBytes`). */
+  notes: 5000,
+  notesBytes: 100_000,
   categoryName: 40,
   query: 100,
 } as const;

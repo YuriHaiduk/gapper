@@ -19,6 +19,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.3.0",

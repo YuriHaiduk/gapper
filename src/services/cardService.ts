@@ -1,22 +1,20 @@
 import { learnedAtFor } from '@/domain/cardStatus';
+import { normalizeRichText, sameRichText } from '@/domain/richText';
 import { nowIso } from '@/domain/timestamps';
 import type { Card, CardStatus } from '@/domain/types';
-import { normalizeOptional, validateCardInput, type CardTextInput } from '@/domain/validation';
+import { validateCardInput, type CardTextInput } from '@/domain/validation';
 import { deleteCardLocally, getCard, saveCard } from '@/repositories/local/cardsLocalRepo';
 import { getCategory, getOtherCategory } from '@/repositories/local/categoriesLocalRepo';
 import { getMeta } from '@/repositories/local/metaRepo';
 import { CardValidationError, NotFoundError } from './errors';
 
-/** Form values (SPEC §7.1). Empty optional text → null; empty/unknown category → Other. */
+/** Form values (SPEC §7.1). Notes without text → null; empty/unknown category → Other. */
 export type CardInput = CardTextInput & {
   category_id?: string | null;
   status?: CardStatus;
 };
 
-type CardFields = Pick<
-  Card,
-  'title' | 'translation' | 'example_sentence' | 'example_sentence_translation' | 'category_id'
->;
+type CardFields = Pick<Card, 'title' | 'notes' | 'category_id'>;
 
 /** A non-deleted category id, falling back to `Other` (mirrors the DB trigger, SPEC §7.1). */
 async function resolveCategoryId(categoryId: string | null | undefined): Promise<string> {
@@ -34,9 +32,7 @@ async function normalize(input: CardInput): Promise<CardFields> {
   if (Object.keys(errors).length > 0) throw new CardValidationError(errors);
   return {
     title: input.title.trim(),
-    translation: normalizeOptional(input.translation),
-    example_sentence: normalizeOptional(input.example_sentence),
-    example_sentence_translation: normalizeOptional(input.example_sentence_translation),
+    notes: normalizeRichText(input.notes),
     category_id: await resolveCategoryId(input.category_id),
   };
 }
@@ -75,18 +71,20 @@ export async function updateCard(id: string, input: CardInput): Promise<Card> {
   const card = await getExisting(id);
   const fields = await normalize(input);
   const status = input.status ?? card.status;
+  const unchanged =
+    fields.title === card.title &&
+    fields.category_id === card.category_id &&
+    sameRichText(fields.notes, card.notes) &&
+    status === card.status;
+  if (unchanged) return card;
   const now = nowIso();
-  const next: Card = {
+  const updated: Card = {
     ...card,
     ...fields,
     status,
     learned_at: learnedAtFor(card, status, now),
+    updated_at: now,
   };
-  const changed = (Object.keys(fields) as (keyof CardFields)[]).some(
-    (key) => fields[key] !== card[key],
-  );
-  if (!changed && status === card.status) return card;
-  const updated = { ...next, updated_at: now };
   await saveCard(updated);
   return updated;
 }

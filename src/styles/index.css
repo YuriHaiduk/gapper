@@ -9,3 +9,22 @@
     @apply bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
   }
 }
+
+/* Notes (rich text) in the editor and on the detail page (D42). Preflight strips list styles. */
+@layer components {
+  .rich-text > * + * {
+    @apply mt-2;
+  }
+  .rich-text ul {
+    @apply list-disc ps-6;
+  }
+  .rich-text ol {
+    @apply list-decimal ps-6;
+  }
+  .rich-text li > * + * {
+    @apply mt-1;
+  }
+  .rich-text strong {
+    @apply font-semibold;
+  }
+}

@@ -1,3 +1,4 @@
+import { richTextToPlain } from './richText';
 import type { Card } from './types';
 
 /** Lowercase, diacritic-free, single-spaced text (SPEC §11.3). */
@@ -5,13 +6,11 @@ export function normalizeText(text: string): string {
   return text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/gu, ' ').trim();
 }
 
-type SearchableCard = Pick<Card, 'title' | 'translation' | 'example_sentence'>;
+type SearchableCard = Pick<Card, 'title' | 'notes'>;
 
-/** Derived `_search` value stored on every local card row. */
+/** Derived `_search` value stored on every local card row: title + notes text. */
 export function buildSearchText(card: SearchableCard): string {
-  return normalizeText(
-    [card.title, card.translation, card.example_sentence].filter((part) => part !== null).join(' '),
-  );
+  return normalizeText(`${card.title} ${richTextToPlain(card.notes)}`);
 }
 
 /** Every word of the query must occur somewhere in the search text (AND). */

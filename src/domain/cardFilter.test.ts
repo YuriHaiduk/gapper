@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '@/test/factories';
+import { plainToRichText } from './richText';
 import {
   countFacets,
   emptyListMessage,
@@ -59,7 +60,9 @@ describe('serializeCardFilter', () => {
 });
 
 describe('matchesCardFilter', () => {
-  const card = local(makeCard({ category_id: 'cat-law', translation: 'Тягар доведення' }));
+  const card = local(
+    makeCard({ category_id: 'cat-law', notes: plainToRichText('Тягар доведення') }),
+  );
 
   it('matches everything with an empty filter', () => {
     expect(matchesCardFilter(card, {})).toBe(true);

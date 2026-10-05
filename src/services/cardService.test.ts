@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/database';
+import { plainToRichText } from '@/domain/richText';
 import { REQUIRED_TITLE, tooLongMessage } from '@/domain/validation';
 import { applyRemoteCard, getCard } from '@/repositories/local/cardsLocalRepo';
 import { applyRemoteCategory } from '@/repositories/local/categoriesLocalRepo';
@@ -40,9 +41,7 @@ describe('cardService (T4)', () => {
       const card = await createCard({ title: '  abandon ' });
       expect(card).toMatchObject({
         title: 'abandon',
-        translation: null,
-        example_sentence: null,
-        example_sentence_translation: null,
+        notes: null,
         category_id: OTHER_ID,
         status: 'learning',
         learned_at: null,
@@ -57,20 +56,14 @@ describe('cardService (T4)', () => {
       expect(await outbox()).toEqual([`card:upsert:${card.id}`]);
     });
 
-    it('trims text and stores empty optional fields as null', async () => {
-      const card = await createCard({
-        title: 'proof',
-        translation: '  доказ ',
-        example_sentence: '   ',
-        example_sentence_translation: '',
+    it('stores notes as given and notes without text as null', async () => {
+      const notes = plainToRichText('доказ\nproof');
+      expect(await createCard({ title: 'proof', notes, category_id: LAW.id })).toMatchObject({
+        notes,
         category_id: LAW.id,
       });
-      expect(card).toMatchObject({
-        translation: 'доказ',
-        example_sentence: null,
-        example_sentence_translation: null,
-        category_id: LAW.id,
-      });
+      const empty = { type: 'doc' as const, content: [{ type: 'paragraph' }] };
+      expect((await createCard({ title: 'x', notes: empty })).notes).toBeNull();
     });
 
     it('AC-36: empty, unknown or deleted category → Other', async () => {
@@ -80,13 +73,14 @@ describe('cardService (T4)', () => {
     });
 
     it('AC-21: rejects invalid input with field errors and saves nothing', async () => {
-      const error = await createCard({ title: ' ', translation: 'x'.repeat(501) }).catch(
-        (e: unknown) => e,
-      );
+      const error = await createCard({
+        title: ' ',
+        notes: plainToRichText('x'.repeat(5001)),
+      }).catch((e: unknown) => e);
       expect(error).toBeInstanceOf(CardValidationError);
       expect((error as CardValidationError).fields).toEqual({
         title: REQUIRED_TITLE,
-        translation: tooLongMessage(500),
+        notes: tooLongMessage(5000),
       });
       expect(await db.cards.count()).toBe(0);
       expect(await outbox()).toEqual([]);
@@ -99,26 +93,24 @@ describe('cardService (T4)', () => {
     });
 
     it('AC-35: changes fields and updated_at, keeps created_at', async () => {
-      const card = await updateCard('c1', {
-        title: 'abandon',
-        translation: 'залишити',
-        category_id: LAW.id,
-      });
-      expect(card).toMatchObject({ translation: 'залишити', created_at: T0, updated_at: NOW });
-      expect((await getCard('c1'))?.translation).toBe('залишити');
+      const notes = plainToRichText('залишити');
+      const card = await updateCard('c1', { title: 'abandon', notes, category_id: LAW.id });
+      expect(card).toMatchObject({ notes, created_at: T0, updated_at: NOW });
+      expect((await getCard('c1'))?.notes).toEqual(notes);
       expect(await outbox()).toEqual(['card:upsert:c1']);
     });
 
     it('AC-36: clearing the category moves the card to Other', async () => {
       expect(
-        (await updateCard('c1', { title: 'abandon', translation: 'покинути' })).category_id,
+        (await updateCard('c1', { title: 'abandon', notes: plainToRichText('покинути') }))
+          .category_id,
       ).toBe(OTHER_ID);
     });
 
     it('an unchanged card is a no-op', async () => {
       const card = await updateCard('c1', {
         title: ' abandon',
-        translation: 'покинути ',
+        notes: plainToRichText('покинути'),
         category_id: LAW.id,
         status: 'learning',
       });
@@ -127,7 +119,7 @@ describe('cardService (T4)', () => {
     });
 
     it('applies the learned_at rules when the status changes', async () => {
-      const input = { title: 'abandon', translation: 'покинути', category_id: LAW.id };
+      const input = { title: 'abandon', notes: plainToRichText('покинути'), category_id: LAW.id };
       expect(await updateCard('c1', { ...input, status: 'learned' })).toMatchObject({
         status: 'learned',
         learned_at: NOW,

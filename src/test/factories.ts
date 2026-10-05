@@ -1,3 +1,4 @@
+import { plainToRichText } from '@/domain/richText';
 import type { Card, Category } from '@/domain/types';
 
 export const USER_ID = '00000000-0000-4000-8000-000000000001';
@@ -35,9 +36,7 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     id: 'card-1',
     user_id: USER_ID,
     title: 'abandon',
-    translation: 'покинути',
-    example_sentence: null,
-    example_sentence_translation: null,
+    notes: plainToRichText('покинути'),
     category_id: OTHER_ID,
     status: 'learning',
     audio_path: null,

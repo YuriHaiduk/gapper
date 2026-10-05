@@ -16,7 +16,7 @@ Original brief: `work/active/001-vocabulary-pwa-mvp/brief.md` (or `work/archive/
 
 ## 1. Product overview
 
-**Gapper** is a private, single-owner Progressive Web App for collecting and reviewing vocabulary. Each *card* holds a word or phrase, its translation, an example sentence with translation, an optional personal audio recording of the pronunciation, a category, and a learning status (`learning` / `learned`).
+**Gapper** is a private, single-owner Progressive Web App for collecting and reviewing vocabulary. Each *card* holds a word or phrase, free-form rich-text notes (translations, example sentences — whatever the owner writes), an optional personal audio recording of the pronunciation, a category, and a learning status (`learning` / `learned`).
 
 - Primary device: iPhone, installed to the Home Screen (standalone PWA).
 - Secondary: any modern desktop browser.
@@ -57,7 +57,7 @@ Original brief: `work/active/001-vocabulary-pwa-mvp/brief.md` (or `work/archive/
 | FR-2 | Protected pages are reachable only when authenticated. |
 | FR-3 | List cards newest first, 20 at a time, with "Load more" appending 20 more. |
 | FR-4 | Filter the list by status (All / Learning / Learned) and by category, combinable, encoded in the URL. |
-| FR-5 | Search cards by title, translation and example sentence (MVP), combinable with filters. |
+| FR-5 | Search cards by title and notes text (MVP), combinable with filters. |
 | FR-6 | View a card's detail page with audio playback and previous/next navigation that stays within the list context. |
 | FR-7 | Create a card: title required; everything else optional; category defaults to `Other`; status defaults to `learning`. |
 | FR-8 | Edit every card field, including status and audio; delete a card (with confirmation). |
@@ -119,14 +119,12 @@ The UI is **strictly monochrome: black & white plus grays**. No accent or hue co
 
 ### 7.1 Fields and validation
 
-All text inputs are trimmed. An empty optional field is stored as `NULL`.
+The title is trimmed. Notes without any text are stored as `NULL`.
 
 | Field | Required | Max length | Notes |
 |---|---|---|---|
 | `title` | yes | 200 | word or phrase, e.g. `burden of proof` |
-| `translation` | no | 500 | |
-| `example_sentence` | no | 1000 | multiline |
-| `example_sentence_translation` | no | 1000 | multiline |
+| `notes` | no | 5000 chars of text (JSON ≤ 100 kB) | rich text (D42): paragraphs, **bold**, *italic*, bullet and numbered lists; stored as a Tiptap/ProseMirror JSON document |
 | `category_id` | no in UI | — | empty → `Other` (enforced in service **and** DB trigger) |
 | `status` | — | — | `learning` (default) or `learned` |
 | audio | no | 60 s | see §10 |
@@ -156,7 +154,7 @@ Duplicate titles are **allowed** (same word may have different senses). When the
 
 Compact row (≈ 64–72 px):
 - **Title** (semibold, the link to `/cards/:id?<context>`; the link's hit area stretches across the whole row).
-- Translation (muted, single line, truncated).
+- Notes preview: the first non-empty line of the notes text (muted, single line, truncated).
 - Meta line: category name · status pill (`Learning` / `Learned`) · 🔊 icon if audio exists · dot if the card has unsynced local changes.
 - Created date is not shown in the list (shown on the detail page).
 
@@ -164,12 +162,10 @@ Compact row (≈ 64–72 px):
 
 Order and emphasis:
 1. Title — largest text (≈ 28–32 px), wraps.
-2. Translation — large (≈ 20 px).
-3. Example sentence — normal, italic or quoted.
-4. Example sentence translation — muted.
-5. Audio player — large Play/Pause button (≥ 56 px) + progress. Hidden if no audio. If audio is not cached and the device is offline: "Audio unavailable offline".
-6. Category chip + status pill.
-7. Metadata (small, muted): Created, Updated, Learned on (if learned).
+2. Notes — rendered rich text (paragraphs, bold, italic, lists), normal size. Rendered as React elements from the JSON (`RichTextView`), never as HTML. Hidden if empty.
+3. Audio player — large Play/Pause button (≥ 56 px) + progress. Hidden if no audio. If audio is not cached and the device is offline: "Audio unavailable offline".
+4. Category chip + status pill.
+5. Metadata (small, muted): Created, Updated, Learned on (if learned).
 
 Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. `Edit` lives in the header. Back control returns to the list with the same context.
 
@@ -177,7 +173,7 @@ Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as lear
 
 `/cards/new` and `/cards/:id/edit` share `CardFormPage`. The list context (`?status&category&q`) stays in the form's URL: the FAB links to `/cards/new?<list query>`, and the header Back link returns to `/cards?<query>` (create) or `/cards/:id?<query>` (edit).
 
-- Fields, top to bottom: Title, Translation, Example sentence (multiline), Example translation (multiline), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
+- Fields, top to bottom: Title, **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
 - **Category select** has no blank option (D37). Create defaults to the context category (`?category=` slug) or `Other`. To clear a card's category, pick `Other`. The service also maps an empty, unknown or deleted category id to `Other`.
 - **New cards** are always `learning` (D38). Status changes on the edit form follow §7.2.
 - Validation runs on submit (§7.1). Errors appear under the field, and the first invalid field gets focus. The duplicate-title hint shows under Title while typing.
@@ -321,7 +317,7 @@ Examples: `/cards`, `/cards?status=learning`, `/cards?category=law`, `/cards?sta
 ### 11.3 Search
 
 - Search field (toggle via 🔍 in header; expands under the header). Clear (×) button.
-- Matching: case-insensitive, diacritic-insensitive substring match over `title`, `translation`, `example_sentence`. Multiple words → all must match (AND).
+- Matching: case-insensitive, diacritic-insensitive substring match over `title` and the plain text of `notes`. Multiple words → all must match (AND).
 - Implementation: client-side over IndexedDB. Each local card row stores a derived `_search` string (normalized concatenation), recomputed on every local write and pull. Fine for ≤ ~10 000 cards.
 - Combined with status/category filters and pagination.
 - Empty result: "No cards match “proof”."
@@ -443,9 +439,7 @@ export type Card = {
   id: string;
   user_id: string;
   title: string;
-  translation: string | null;
-  example_sentence: string | null;
-  example_sentence_translation: string | null;
+  notes: RichText | null;       // { type: 'doc', content: RichNode[] } — Tiptap JSON (D42)
   category_id: string;
   status: CardStatus;
   audio_path: string | null;
@@ -465,7 +459,7 @@ export type CardFilter = {
 
 All timestamps are normalized with `new Date(x).toISOString()` when read from Supabase, so string comparison in IndexedDB indexes equals chronological order.
 
-### 16.2 IndexedDB (Dexie) schema — version 1
+### 16.2 IndexedDB (Dexie) schema — version 2
 
 Database name: `gapper`.
 
@@ -476,6 +470,8 @@ Database name: `gapper`.
 | `audio_blobs` | `path, card_id` | `{ path, card_id, blob: Blob, mime, uploaded: 0\|1, created_at }` |
 | `outbox` | `++id, [entity+entity_id]` | §15.2 |
 | `meta` | `key` | `{ key, value }` — `user_id`, `cards_cursor`, `categories_cursor`, `last_sync_at`, `initial_sync_done` |
+
+Version 2 (no index change) merges the v1 fields `translation`, `example_sentence`, `example_sentence_translation` into `notes` on upgrade (one paragraph per line, like the SQL migration) and recomputes `_search`.
 
 Locally, soft-deleted rows are kept only until their tombstone is pushed, then removed. All queries exclude `deleted_at != null`.
 
@@ -516,9 +512,7 @@ create table public.vocabulary_cards (
   id                            uuid primary key default gen_random_uuid(),
   user_id                       uuid not null default auth.uid() references auth.users (id) on delete cascade,
   title                         text not null check (char_length(btrim(title)) between 1 and 200),
-  translation                   text check (char_length(translation) <= 500),
-  example_sentence              text check (char_length(example_sentence) <= 1000),
-  example_sentence_translation  text check (char_length(example_sentence_translation) <= 1000),
+  notes                         jsonb,  -- migration 20261005160000 (D42), replaced translation/example columns
   category_id                   uuid not null,
   status                        text not null default 'learning' check (status in ('learning', 'learned')),
   audio_path                    text,
@@ -530,6 +524,8 @@ create table public.vocabulary_cards (
   constraint cards_category_fk foreign key (category_id, user_id)
     references public.categories (id, user_id) on delete restrict,
   constraint cards_learned_at_ck check ((status = 'learned') = (learned_at is not null)),
+  constraint cards_notes_ck check (notes is null or (jsonb_typeof(notes) = 'object'
+    and notes ->> 'type' = 'doc' and octet_length(notes::text) <= 100000)),
   constraint cards_audio_path_ck check (
     audio_path is null or audio_path like (user_id::text || '/' || id::text || '/%')
   )
@@ -732,11 +728,12 @@ create policy audio_delete on storage.objects for delete to authenticated
 | Routing | React Router v8 (`react-router`), data router (`createBrowserRouter`) in library mode |
 | Local DB | Dexie 4 + `dexie-react-hooks` |
 | Backend SDK | `@supabase/supabase-js` v2 |
+| Rich text | Tiptap 3 (`@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`), notes editor only, lazy-loaded chunk (D43) |
 | PWA | `vite-plugin-pwa` (Workbox `generateSW`) |
 | Tests | Vitest, React Testing Library, `@testing-library/user-event`, jsdom, `fake-indexeddb`, Playwright |
 | Quality | ESLint (flat config, typescript-eslint, react-hooks, jsx-a11y), Prettier |
 
-No state-management library, no UI kit, no form library, no data-fetching library (Dexie live queries replace them). Icons: inline SVG components (no icon package) unless more than ~15 icons are needed.
+No state-management library, no UI kit, no form library (the notes editor is the one rich-text exception), no data-fetching library (Dexie live queries replace them). Icons: inline SVG components (no icon package) unless more than ~15 icons are needed.
 
 ### 20.2 Layers
 
@@ -759,8 +756,8 @@ Rules: see `docs/conventions/architecture.md`. UI never imports Supabase or Dexi
 
 ```ts
 // services/cardService.ts
-// CardInput = { title; translation?; example_sentence?; example_sentence_translation?;
-//               category_id?: string | null; status?: CardStatus }  (status ignored on create)
+// CardInput = { title; notes?: RichText | null; category_id?: string | null;
+//               status?: CardStatus }  (status ignored on create)
 createCard(input: CardInput, audio?: RecordedAudio): Promise<Card>
 updateCard(id: string, patch: CardInput, audio?: AudioChange): Promise<Card>
 setStatus(id: string, status: CardStatus): Promise<Card>
@@ -794,8 +791,8 @@ gapper/
     main.tsx
     app/                     App.tsx, router.tsx, RequireAuth.tsx, AppLayout.tsx, providers
     pages/                   LoginPage, CardListPage, CardDetailPage, CardFormPage, CategoriesPage, NotFoundPage
-    components/ui/           Button, TextField, TextArea, Select, Sheet, Spinner, EmptyState, ErrorState, Banner
-    features/cards/          CardListItem, FilterSheet, SearchBar, AdjacentNav, StatusToggle
+    components/ui/           Button, TextField, Select, RichTextView, Sheet, Spinner, EmptyState, ErrorState, Banner
+    features/cards/          CardListItem, FilterSheet, SearchBar, CardForm, NotesEditor, AdjacentNav, StatusToggle
     features/audio/          AudioRecorder, AudioPlayer
     features/categories/     CategoryRow, CategoryForm
     hooks/
@@ -953,7 +950,7 @@ No screen is ever blank. Async status messages use `aria-live="polite"`.
 - `.env` git-ignored; `.env.example` holds placeholders only.
 - Logout deletes the local database (§9).
 - Login `redirect` param restricted to same-app paths (no open redirect).
-- No `dangerouslySetInnerHTML`; user content rendered as text.
+- No `dangerouslySetInnerHTML`; user content rendered as text. Rich-text notes are rendered from their JSON as React elements (`RichTextView`, D42).
 - Content Security Policy: GitHub Pages cannot set headers; a `<meta http-equiv="Content-Security-Policy">` restricting `connect-src` to `'self'` and the Supabase project URL is added in step 11 if it doesn't break the SW/Vite build.
 - Dependencies kept minimal; `npm audit` reviewed when adding packages.
 
@@ -1024,7 +1021,7 @@ Format: Given / When / Then. "Owner" = the signed-in single user. Unless stated,
 - **AC-16** Opening a bookmarked `/cards?status=learned&category=law` directly shows the same filtered list.
 - **AC-17** Given `/cards?category=unknown-slug`, then "Category not found." with "Show all cards" is shown.
 - **AC-18** Given Learned filter with no learned cards, then "No learned cards yet." is shown.
-- **AC-19** When the owner types "proof" in search, then within ~300 ms the URL contains `q=proof` and only cards whose title, translation or example sentence contain "proof" (case/diacritics-insensitive) are listed, combined with active filters.
+- **AC-19** When the owner types "proof" in search, then within ~300 ms the URL contains `q=proof` and only cards whose title or notes contain "proof" (case/diacritics-insensitive) are listed, combined with active filters.
 
 ### Create card
 - **AC-20** When the owner saves a card with only title "abandon", then it is saved with category `Other`, status `learning`, `learned_at` null, and appears first in `/cards`.
@@ -1039,7 +1036,7 @@ Format: Given / When / Then. "Owner" = the signed-in single user. Unless stated,
 - **AC-27** Changing status never changes the card's position in the newest-first ordering.
 
 ### Detail & prev/next
-- **AC-28** The detail page shows title, translation, example sentence, its translation, category, status, audio player (if audio) and created date, in that visual priority.
+- **AC-28** The detail page shows title, formatted notes, category, status, audio player (if audio) and created date, in that visual priority.
 - **AC-29** Given the owner is viewing `/cards?status=learning&category=law` and opens a card, when they press Next, then the next (older) card that is Learning **and** Law opens, and the URL keeps `?status=learning&category=law`.
 - **AC-30** Given the first card of a context, then the Previous control is disabled; given the last card, Next is disabled.
 - **AC-31** The controls show the neighbour titles, e.g. `← evidence` and `contract →`.
@@ -1048,7 +1045,7 @@ Format: Given / When / Then. "Owner" = the signed-in single user. Unless stated,
 - **AC-34** Given the owner marks the current card learned while in the Learning context, then Next still opens the next Learning card after it.
 
 ### Edit & delete
-- **AC-35** When the owner edits translation and saves, then the detail page shows the new value and `updated_at` changes; `created_at` does not.
+- **AC-35** When the owner edits the notes and saves, then the detail page shows the new value and `updated_at` changes; `created_at` does not.
 - **AC-36** When the owner clears the category select and saves, then the card belongs to `Other`.
 - **AC-37** When the owner deletes a card and confirms, then it disappears from all lists and adjacency immediately; after sync its row has `deleted_at` set on the server and its audio objects are removed from Storage.
 

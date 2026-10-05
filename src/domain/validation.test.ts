@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { plainToRichText } from './richText';
 import { normalizeOptional, validateCardInput, validateCategoryName } from './validation';
 
 describe('validation', () => {
@@ -11,17 +12,27 @@ describe('validation', () => {
   it('requires a title and enforces limits after trimming', () => {
     expect(validateCardInput({ title: '   ' })).toEqual({ title: 'Title is required.' });
     expect(validateCardInput({ title: ` ${'a'.repeat(200)} ` })).toEqual({});
-    expect(
-      validateCardInput({
-        title: 'a'.repeat(201),
-        translation: 'b'.repeat(501),
-        example_sentence: 'c'.repeat(1000),
-        example_sentence_translation: 'd'.repeat(1001),
-      }),
-    ).toEqual({
+    expect(validateCardInput({ title: 'a'.repeat(201) })).toEqual({
       title: 'Must be at most 200 characters.',
-      translation: 'Must be at most 500 characters.',
-      example_sentence_translation: 'Must be at most 1000 characters.',
+    });
+  });
+
+  it('limits notes to 5000 plain-text characters', () => {
+    expect(validateCardInput({ title: 'x', notes: plainToRichText('b'.repeat(5000)) })).toEqual({});
+    expect(validateCardInput({ title: 'x', notes: null })).toEqual({});
+    expect(validateCardInput({ title: 'x', notes: plainToRichText('b'.repeat(5001)) })).toEqual({
+      notes: 'Must be at most 5000 characters.',
+    });
+  });
+
+  it('limits the notes document size', () => {
+    const bold = { type: 'text', text: 'a', marks: [{ type: 'bold' }, { type: 'italic' }] };
+    const notes = {
+      type: 'doc' as const,
+      content: Array.from({ length: 2000 }, () => ({ type: 'paragraph', content: [bold] })),
+    };
+    expect(validateCardInput({ title: 'x', notes })).toEqual({
+      notes: 'Must be at most 5000 characters.',
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { plainToRichText } from './richText';
 import { buildSearchText, matchesSearch, normalizeText } from './search';
 
 describe('search', () => {
@@ -6,21 +7,17 @@ describe('search', () => {
     expect(normalizeText('  Café   CRÈME\n')).toBe('cafe creme');
   });
 
-  it('builds search text from title, translation and example', () => {
+  it('builds search text from the title and the notes text', () => {
     expect(
-      buildSearchText({
-        title: 'Burden',
-        translation: null,
-        example_sentence: 'The burden of proof',
-      }),
+      buildSearchText({ title: 'Burden', notes: plainToRichText('The burden\nof proof') }),
     ).toBe('burden the burden of proof');
+    expect(buildSearchText({ title: 'Burden', notes: null })).toBe('burden');
   });
 
   it('requires every word to match (AND), as substrings', () => {
     const text = buildSearchText({
       title: 'burden of proof',
-      translation: 'тягар доведення',
-      example_sentence: null,
+      notes: plainToRichText('тягар доведення'),
     });
     expect(matchesSearch(text, 'PROOF тягар')).toBe(true);
     expect(matchesSearch(text, 'proo')).toBe(true);

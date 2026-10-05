@@ -14,13 +14,24 @@ export type Category = {
   server_updated_at: string | null;
 };
 
+/** Tiptap/ProseMirror JSON node (SPEC §16.1, D42). */
+export type RichMark = { type: string; attrs?: Record<string, unknown> };
+export type RichNode = {
+  type: string;
+  text?: string;
+  marks?: RichMark[];
+  attrs?: Record<string, unknown>;
+  content?: RichNode[];
+};
+/** Notes document: `{ type: 'doc', content: [...] }`. */
+export type RichText = { type: 'doc'; content?: RichNode[] };
+
 export type Card = {
   id: string;
   user_id: string;
   title: string;
-  translation: string | null;
-  example_sentence: string | null;
-  example_sentence_translation: string | null;
+  /** Free-form rich text: examples, translations… (D42). */
+  notes: RichText | null;
   category_id: string;
   status: CardStatus;
   audio_path: string | null;

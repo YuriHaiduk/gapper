@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/database';
+import { richTextToPlain } from '@/domain/richText';
 import { applyRemoteCard, getCard } from '@/repositories/local/cardsLocalRepo';
 import { applyRemoteCategory } from '@/repositories/local/categoriesLocalRepo';
 import { setMeta } from '@/repositories/local/metaRepo';
@@ -55,7 +56,7 @@ describe('CardFormPage', () => {
     it('AC-21: empty title → error, nothing saved', async () => {
       const user = userEvent.setup();
       const app = renderApp('/cards/new');
-      await user.type(await screen.findByLabelText('Translation'), 'покинути');
+      await screen.findByRole('textbox', { name: 'Notes' });
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
       expect(await screen.findByText('Title is required.')).toBeInTheDocument();
@@ -103,14 +104,15 @@ describe('CardFormPage', () => {
       const user = userEvent.setup();
       const app = renderApp('/cards/new');
       await user.type(await screen.findByLabelText('Title'), 'tort');
-      await user.type(screen.getByLabelText('Translation'), 'делікт');
+      await screen.findByRole('textbox', { name: 'Notes' });
+      await user.click(screen.getByRole('button', { name: 'Bullet list' }));
       await user.selectOptions(screen.getByLabelText('Category'), 'Law');
       await user.click(screen.getByRole('button', { name: 'Save & add another' }));
 
       expect(await screen.findByText('Saved “tort”.')).toBeInTheDocument();
       expect(screen.getByLabelText('Title')).toHaveValue('');
       expect(screen.getByLabelText('Title')).toHaveFocus();
-      expect(screen.getByLabelText('Translation')).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'Notes' }).querySelector('ul')).toBeNull();
       expect(screen.getByLabelText('Category')).toHaveValue(LAW.id);
       expect(app.location()).toBe('/cards/new');
       expect(await onlyCard()).toMatchObject({ title: 'tort', category_id: LAW.id });
@@ -180,7 +182,7 @@ describe('CardFormPage', () => {
       await applyRemoteCard(makeCard({ id: 'c1' }));
       const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
       const app = renderApp('/cards/c1/edit');
-      await user.type(await screen.findByLabelText('Translation'), '!');
+      await user.type(await screen.findByLabelText('Title'), '!');
       await user.click(screen.getByRole('button', { name: 'Delete card' }));
 
       await waitFor(() => {
@@ -195,11 +197,11 @@ describe('CardFormPage', () => {
       await applyRemoteCard(makeCard({ id: 'c1', title: 'abandon', category_id: LAW.id }));
     });
 
-    it('AC-35: edits the translation; created_at unchanged; opens the card', async () => {
+    it('AC-35: edits the notes; created_at unchanged; opens the card', async () => {
       const user = userEvent.setup();
       const app = renderApp('/cards/c1/edit?category=law');
-      const translation = await screen.findByLabelText('Translation');
-      expect(translation).toHaveValue('покинути');
+      const notes = await screen.findByRole('textbox', { name: 'Notes' });
+      expect(notes).toHaveTextContent('покинути');
       expect(screen.getByLabelText('Category')).toHaveValue(LAW.id);
       expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute(
         'href',
@@ -207,15 +209,17 @@ describe('CardFormPage', () => {
       );
       expect(screen.queryByRole('button', { name: 'Save & add another' })).not.toBeInTheDocument();
 
-      await user.clear(translation);
-      await user.type(translation, 'залишити');
+      const bullet = screen.getByRole('button', { name: 'Bullet list' });
+      await user.click(bullet);
+      expect(bullet).toHaveAttribute('aria-pressed', 'true');
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
       await waitFor(() => {
         expect(app.location()).toBe('/cards/c1?category=law');
       });
       const card = await getCard('c1');
-      expect(card?.translation).toBe('залишити');
+      expect(card?.notes?.content?.[0]).toMatchObject({ type: 'bulletList' });
+      expect(richTextToPlain(card?.notes)).toBe('покинути');
       expect(card?.created_at).toBe('2026-01-01T00:00:00.000Z');
       expect(card?.updated_at).not.toBe('2026-01-01T00:00:00.000Z');
     });

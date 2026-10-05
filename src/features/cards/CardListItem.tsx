@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { SpeakerIcon } from '@/components/ui/icons';
+import { richTextPreview } from '@/domain/richText';
 import type { Card } from '@/domain/types';
 import { StatusPill } from './StatusPill';
 
@@ -14,6 +15,7 @@ type CardListItemProps = {
 
 /** Compact list row (SPEC §7.4); the title link's hit area covers the whole row. */
 export function CardListItem({ card, categoryName, query, pending, onOpen }: CardListItemProps) {
+  const preview = richTextPreview(card.notes);
   return (
     <li className="relative flex min-h-16 flex-col justify-center gap-0.5 py-2 has-[a:hover]:bg-neutral-50 dark:has-[a:hover]:bg-neutral-900">
       <Link
@@ -23,9 +25,7 @@ export function CardListItem({ card, categoryName, query, pending, onOpen }: Car
       >
         {card.title}
       </Link>
-      {card.translation && (
-        <p className="truncate text-neutral-600 dark:text-neutral-400">{card.translation}</p>
-      )}
+      {preview && <p className="truncate text-neutral-600 dark:text-neutral-400">{preview}</p>}
       <p className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
         {categoryName && <span className="truncate">{categoryName}</span>}
         <StatusPill status={card.status} />
