@@ -9,6 +9,7 @@ import type { Card, CardStatus, Category } from '@/domain/types';
 import { validateCardInput, type CardFieldErrors } from '@/domain/validation';
 import { cardErrorMessage, cardFieldErrors, type CardInput } from '@/hooks/useCardActions';
 import { useDuplicateTitle } from '@/hooks/useDuplicateTitle';
+import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { StatusField } from './StatusField';
 
 export type CardFormValues = Required<{ [K in keyof CardInput]: NonNullable<CardInput[K]> }>;
@@ -20,9 +21,10 @@ type CardFormProps = {
   /** The edited card, excluded from the duplicate-title hint. */
   selfId?: string;
   onSave: (values: CardFormValues) => Promise<Card>;
-  /** Called after a plain Save (not "Save & add another"). */
+  /** Called after a plain Save (not "Save & add another"); navigates away unprompted. */
   onSaved: (card: Card) => void;
-  onDelete?: () => void;
+  /** Resolves `false` when the user cancelled (the form keeps guarding unsaved changes). */
+  onDelete?: () => Promise<boolean>;
 };
 
 /** Create/edit form (SPEC §7.1, §7.6): validation under fields, duplicate hint, bottom actions. */
@@ -36,6 +38,8 @@ export function CardForm({
   onDelete,
 }: CardFormProps) {
   const [values, setValues] = useState(initial);
+  // What "no unsaved changes" means: the initial values, or the reset form after "add another".
+  const [baseline, setBaseline] = useState(initial);
   const [errors, setErrors] = useState<CardFieldErrors>({});
   const [formError, setFormError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -44,6 +48,10 @@ export function CardForm({
   const formRef = useRef<HTMLFormElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const duplicate = useDuplicateTitle(values.title, selfId);
+  const dirty = (Object.keys(baseline) as (keyof CardFormValues)[]).some(
+    (key) => values[key] !== baseline[key],
+  );
+  const leave = useLeaveGuard(dirty);
 
   useEffect(() => {
     if (mode === 'create') titleRef.current?.focus();
@@ -74,10 +82,14 @@ export function CardForm({
     try {
       const card = await onSave(values);
       if (!addAnother) {
-        onSaved(card);
+        await leave(() => {
+          onSaved(card);
+        });
         return;
       }
-      setValues({ ...initial, category_id: values.category_id });
+      const next = { ...initial, category_id: values.category_id };
+      setValues(next);
+      setBaseline(next);
       setSavedTitle(card.title);
       setFocusRequest((n) => n + 1);
     } catch (error) {
@@ -179,7 +191,12 @@ export function CardForm({
         />
       )}
       {onDelete && (
-        <Button variant="secondary" disabled={pending} onClick={onDelete} className="self-start">
+        <Button
+          variant="secondary"
+          disabled={pending}
+          onClick={() => void leave(onDelete)}
+          className="self-start"
+        >
           Delete card
         </Button>
       )}

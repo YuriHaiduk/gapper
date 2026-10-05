@@ -79,15 +79,17 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const editedId = card.id;
   const title = card.title;
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     setDeleteError(undefined);
-    if (!window.confirm(deleteCardPrompt(title))) return;
+    if (!window.confirm(deleteCardPrompt(title))) return false;
     try {
       await deleteCard(editedId);
-      void navigate(`/cards${search}`, { replace: true });
     } catch (error) {
       setDeleteError(cardErrorMessage(error));
+      return false;
     }
+    void navigate(`/cards${search}`, { replace: true });
+    return true;
   }
 
   const initial: CardFormValues = {
@@ -117,7 +119,7 @@ export function CardFormPage({ mode }: { mode: 'create' | 'edit' }) {
         selfId={card.id}
         onSave={(values) => updateCard(editedId, values)}
         onSaved={openCard}
-        onDelete={() => void handleDelete()}
+        onDelete={handleDelete}
       />
     </>
   );

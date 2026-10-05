@@ -117,6 +117,79 @@ describe('CardFormPage', () => {
     });
   });
 
+  describe('unsaved changes', () => {
+    it('asks before leaving a changed form; Cancel stays, OK leaves', async () => {
+      const user = userEvent.setup();
+      const confirm = vi
+        .spyOn(window, 'confirm')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true);
+      const app = renderApp('/cards/new?category=law');
+      await user.type(await screen.findByLabelText('Title'), 'tort');
+
+      await user.click(screen.getByRole('link', { name: 'Back' }));
+      expect(confirm).toHaveBeenCalledWith('Discard unsaved changes?');
+      expect(app.location()).toBe('/cards/new?category=law');
+      expect(screen.getByLabelText('Title')).toHaveValue('tort');
+
+      await user.click(screen.getByRole('link', { name: 'Back' }));
+      await waitFor(() => {
+        expect(app.location()).toBe('/cards?category=law');
+      });
+      expect(await db.cards.count()).toBe(0);
+    });
+
+    it('also guards browser Back', async () => {
+      const user = userEvent.setup();
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const app = renderApp('/cards');
+      await user.click(await screen.findByRole('link', { name: 'Add card' }));
+      await user.type(await screen.findByLabelText('Title'), 'tort');
+      await app.router.navigate(-1);
+
+      await waitFor(() => {
+        expect(confirm).toHaveBeenCalledWith('Discard unsaved changes?');
+      });
+      expect(app.location()).toBe('/cards/new');
+      expect(screen.getByLabelText('Title')).toHaveValue('tort');
+    });
+
+    it('does not ask for an untouched form, after Save, or after Save & add another', async () => {
+      const user = userEvent.setup();
+      const confirm = vi.spyOn(window, 'confirm');
+      const app = renderApp('/cards/new');
+      await user.selectOptions(await screen.findByLabelText('Category'), 'Law');
+      await user.type(screen.getByLabelText('Title'), 'tort');
+      await user.click(screen.getByRole('button', { name: 'Save & add another' }));
+      await screen.findByText('Saved “tort”.');
+      await user.click(screen.getByRole('link', { name: 'Back' }));
+      await waitFor(() => {
+        expect(app.location()).toBe('/cards');
+      });
+
+      await app.router.navigate('/cards/new');
+      await user.type(await screen.findByLabelText('Title'), 'delict{Enter}');
+      await waitFor(() => {
+        expect(app.location()).toMatch(/^\/cards\/[0-9a-f-]{36}$/);
+      });
+      expect(confirm).not.toHaveBeenCalled();
+    });
+
+    it('delete of a changed card asks only the delete question', async () => {
+      const user = userEvent.setup();
+      await applyRemoteCard(makeCard({ id: 'c1' }));
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const app = renderApp('/cards/c1/edit');
+      await user.type(await screen.findByLabelText('Translation'), '!');
+      await user.click(screen.getByRole('button', { name: 'Delete card' }));
+
+      await waitFor(() => {
+        expect(app.location()).toBe('/cards');
+      });
+      expect(confirm).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('edit', () => {
     beforeEach(async () => {
       await applyRemoteCard(makeCard({ id: 'c1', title: 'abandon', category_id: LAW.id }));

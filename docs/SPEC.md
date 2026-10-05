@@ -185,6 +185,7 @@ Bottom action bar (thumb zone): `← prev-title` · status toggle (`Mark as lear
 - **After Save** (D39): `/cards/:id?<query>` with `replace`, so Back from the card returns to where the form was opened, not to the form. Saving an unchanged card is a no-op (no new `updated_at`, no outbox entry).
 - **Save & add another** (D40) stays on the form. It clears the text fields, keeps the selected category, focuses Title and announces "Saved “abandon”." (`role="status"`).
 - **Delete card** (edit only): native confirm (§7.3, D32), then soft delete, then `/cards?<query>` with `replace`.
+- **Unsaved changes** (D41): leaving a form whose values differ from what it opened with (or from the reset form after "Save & add another") asks "Discard unsaved changes?" (native confirm). This covers the header Back, browser/iOS Back, the duplicate-hint link and any other in-app link; Cancel keeps the user on the form with the typed values. Reload/tab close triggers the browser's own `beforeunload` prompt (not reliable on iOS). Save, Save & add another and a confirmed Delete never ask.
 - Edit of a missing or deleted card: "Card not found." + "Back to cards". The form is initialized once per card, so a sync landing mid-edit does not overwrite what the user typed (the user's later save wins via LWW).
 
 ## 8. Categories

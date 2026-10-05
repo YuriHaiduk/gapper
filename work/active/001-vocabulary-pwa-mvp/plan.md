@@ -29,7 +29,6 @@ _(items discovered during work that are not yet scheduled)_
 
 - Different user signs in on a device with local data → wipe Dexie first (SPEC §9). `meta.user_id` is written by `SyncProvider` since step 04; the comparison + wipe belongs to step 10.
 - Step 08: the detail page must link Back to `/cards?<context>` so the list's sessionStorage count/scroll restore (D36) applies; real-device check of the filter `<dialog>` bottom sheet on iOS Safari.
-- Card form: warn about unsaved changes when leaving the form (not in SPEC; ask owner).
 - Step 08: detail page `Edit` → `/cards/:id/edit?<ctx>`; reuse `useCard`, `useCardActions().setStatus` and the `RouteHandle.back` function form to keep the list context.
 - Sync status UI: `useSyncStatus()` already exposes `syncing`, `lastResult`, `lastSyncAt`, `pendingCount`, `failedCount`, `initialSyncDone` — header indicator/panel in step 10; list "Loading your cards…" uses `initialSyncDone` in step 06.
 
