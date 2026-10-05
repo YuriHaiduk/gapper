@@ -199,8 +199,8 @@ Non-Latin names keep their letters intact, including letters with marks (e.g. `�
 | Action | Behavior |
 |---|---|
 | Create | `/categories` → "New category" → name → Save. Duplicate name → "A category with this name already exists." |
-| Rename | Inline edit; same validation; slug regenerated. `Other`: not allowed. |
-| Delete | Confirm: "Delete “Law”? Its N cards will move to Other." → soft delete (`deleted_at`). Locally, all its cards are reassigned to `Other` in the same Dexie transaction; on the server a trigger does the same. `Other`: not allowed. |
+| Rename | Inline edit (Enter saves, Escape cancels); same validation; slug regenerated; an unchanged name is a no-op. `Other`: not allowed. |
+| Delete | Native confirm: "Delete “Law”? Its N cards will move to Other." ("Its 1 card will…"; just "Delete “Law”?" when it has no cards) → soft delete (`deleted_at`). Locally, all its cards are reassigned to `Other` in the same Dexie transaction; on the server a trigger does the same. `Other`: not allowed. |
 | Card counts | Computed locally from IndexedDB (non-deleted cards per category). |
 | Filtering | Each category is a filter option in the list's filter sheet (§11). |
 

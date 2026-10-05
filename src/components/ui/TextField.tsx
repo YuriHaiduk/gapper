@@ -1,6 +1,6 @@
-import { useId, type InputHTMLAttributes } from 'react';
+import { useId, type ComponentProps } from 'react';
 
-type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
+type TextFieldProps = Omit<ComponentProps<'input'>, 'id'> & {
   label: string;
   error?: string | undefined;
 };

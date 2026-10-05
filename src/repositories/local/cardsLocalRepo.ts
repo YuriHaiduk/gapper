@@ -46,3 +46,14 @@ export async function removeCard(id: string): Promise<void> {
 export async function reassignCategory(fromId: string, toId: string): Promise<void> {
   await db.cards.where('category_id').equals(fromId).modify({ category_id: toId });
 }
+
+/** Non-deleted cards per category id (SPEC §8.5 card counts). */
+export async function countCardsByCategory(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  await db.cards
+    .filter((card) => card.deleted_at === null)
+    .each((card) => {
+      counts[card.category_id] = (counts[card.category_id] ?? 0) + 1;
+    });
+  return counts;
+}
