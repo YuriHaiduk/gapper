@@ -69,7 +69,7 @@ docker compose up                       # dev server → http://localhost:5173/g
 docker compose exec web npm run lint
 docker compose exec web npm run typecheck
 docker compose exec web npm run test    # vitest run
-docker compose exec web npm run build   # tsc -b && vite build (404.html copy added in step 11)
+docker compose exec web npm run build   # tsc -b && vite build (+ sw.js, manifest, 404.html, CSP meta)
 docker compose exec web npm run format  # prettier --write (format:check in CI)
 # one-off checks without a running server: docker compose run --rm web npm run <script>
 # add a dependency: docker compose run --rm web npm install <pkg>  (updates package-lock.json)

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useBlocker, type BlockerFunction } from 'react-router';
+import { registerUnsavedChanges } from './unsavedChanges';
 
 export const DISCARD_CHANGES_PROMPT = 'Discard unsaved changes?';
 
 /**
  * Asks before leaving a form with unsaved changes (SPEC §7.6, D41): in-app navigation incl.
- * browser Back via `useBlocker` + native confirm (D32), reload/tab close via `beforeunload`.
+ * browser Back via `useBlocker` + native confirm (D32), reload/tab close via `beforeunload`;
+ * while dirty, the app update prompt is hidden (D55).
  * `leave(action)` runs a navigation the form itself triggers (after save/delete) unprompted;
  * if `action` returns `false` or throws, guarding resumes.
  */
@@ -34,8 +36,10 @@ export function useLeaveGuard(dirty: boolean) {
       event.preventDefault();
     };
     window.addEventListener('beforeunload', onBeforeUnload);
+    const unregister = registerUnsavedChanges();
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
+      unregister();
     };
   }, [dirty]);
 

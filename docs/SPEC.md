@@ -797,8 +797,8 @@ gapper/
   CLAUDE.md
   docs/                      SPEC.md, decisions.md, conventions/
   work/                      active/, archive/
-  public/                    favicon.svg, pwa-192x192.png, pwa-512x512.png, maskable-512x512.png,
-                             apple-touch-icon-180x180.png
+  public/                    favicon.svg, favicon.ico, pwa-64x64.png, pwa-192x192.png, pwa-512x512.png,
+                             maskable-icon-512x512.png, apple-touch-icon-180x180.png (generated)
   src/
     main.tsx
     app/                     App.tsx, router.tsx, RequireAuth.tsx, AppLayout.tsx, providers
@@ -815,7 +815,7 @@ gapper/
   e2e/
   .github/workflows/deploy.yml
   docker-compose.yml  Dockerfile.dev (if needed)  .env.example
-  vite.config.ts  tsconfig*.json  eslint.config.js  .prettierrc  index.html  package.json
+  vite.config.ts  pwa-assets.config.ts  tsconfig*.json  eslint.config.js  .prettierrc  index.html  package.json
 ```
 
 ## 21. Routing
@@ -824,19 +824,20 @@ gapper/
 - Vite `base` = `process.env.BASE_PATH ?? '/gapper/'` — same in dev and prod so URLs are identical (`http://localhost:5173/gapper/cards`).
 - Route table: §6. Protected routes are children of a `RequireAuth` layout route.
 - **GitHub Pages SPA limitation:** Pages has no rewrite rules; a deep link like `/gapper/cards/abc` would 404.
-  - **Strategy:** the build copies `dist/index.html` to `dist/404.html` (small Vite plugin or `postbuild` script). Pages serves `404.html` for unknown paths; the SPA boots and the router renders the correct page (HTTP status is 404, irrelevant for a private app without SEO).
+  - **Strategy:** the build copies `dist/index.html` to `dist/404.html` (small build-only Vite plugin in `vite.config.ts`). Pages serves `404.html` for unknown paths; the SPA boots and the router renders the correct page (HTTP status is 404, irrelevant for a private app without SEO).
   - In the installed PWA, the service worker's `navigateFallback: 'index.html'` serves the shell for every in-scope navigation, so deep links work offline and without hitting Pages at all.
   - **Decision:** `BrowserRouter`-style clean URLs + 404 fallback, rather than `HashRouter` (cleaner URLs, same reliability for this use).
 - `redirect` query on `/login` accepts only paths starting with `/` and not `//`.
 
 ## 22. PWA requirements
 
-`vite-plugin-pwa` config (indicative):
+`vite-plugin-pwa` config (see `vite.config.ts`):
 
 ```ts
 VitePWA({
   registerType: 'prompt',            // show "New version available · Reload" toast
-  includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
+  injectRegister: false,             // registered by useRegisterSW in UpdatePrompt
+  includeManifestIcons: false,       // icons already matched by globPatterns (no duplicate entries)
   manifest: {
     name: 'Gapper — Vocabulary',
     short_name: 'Gapper',
@@ -850,13 +851,14 @@ VitePWA({
     theme_color: '#ffffff',
     background_color: '#ffffff',
     icons: [
+      { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
       { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
       { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-      { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+    globPatterns: ['**/*.{js,css,html,svg,png,ico}'],   // every JS chunk incl. the lazy NotesEditor; manifest added by the plugin
     globIgnores: ['404.html'],
     navigateFallback: 'index.html',
     cleanupOutdatedCaches: true,
@@ -877,14 +879,17 @@ VitePWA({
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Gapper" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<link rel="apple-touch-icon" href="/gapper/apple-touch-icon-180x180.png" />  <!-- via %BASE_URL% -->
-<link rel="icon" href="/gapper/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/gapper/favicon.ico" sizes="48x48" />                    <!-- via %BASE_URL% -->
+<link rel="icon" href="/gapper/favicon.svg" sizes="any" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/gapper/apple-touch-icon-180x180.png" />
 ```
 
-- Icons generated from one source SVG with `@vite-pwa/assets-generator` (dev dependency, run once; outputs committed to `public/`).
+- Icons generated from `public/favicon.svg` with `@vite-pwa/assets-generator` (dev dependency, `npm run generate-pwa-assets`, config `pwa-assets.config.ts` — `minimal-2023` preset, apple/maskable on the logo's dark background; outputs committed to `public/`). The SVG draws the letter as a path, so no fonts are needed.
 - iOS splash screens: not in MVP (white launch screen is acceptable).
 - Requirements: Lighthouse "installable" passes; app launches from Home Screen without Safari UI; works offline after first load; portrait-first layout.
-- Update flow: when a new SW is waiting, show toast; "Reload" calls `updateSW(true)`. Never auto-reload while a form has unsaved changes.
+- Update flow (`app/UpdatePrompt.tsx`, D55): when a new SW is waiting, show a bottom toast "New version available" with **Later** (hides it until the next launch) and **Reload** (`updateServiceWorker(true)`). Never auto-reload. The toast stays hidden while a form has unsaved changes (forms register through `useLeaveGuard` → `hooks/unsavedChanges.ts`) and appears once the form is saved or left. Besides the browser's check on navigation, the app calls `registration.update()` whenever it returns to the foreground (online, no install in progress), because the installed iOS app may stay in memory for days.
+- Content Security Policy (D56): build-only `<meta http-equiv="Content-Security-Policy">` injected by a Vite plugin (dev keeps Vite's inline HMR client): `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' <Supabase origin>; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'` (`'unsafe-inline'` styles: ProseMirror sets inline style attributes). The Supabase origin comes from `VITE_SUPABASE_URL` at build time (fallback `https://*.supabase.co` when unset).
+- Bundle size (D57): `build.chunkSizeWarningLimit: 800` — the ~700 kB app chunk (mostly supabase-js) is precached, so its size only matters on first load and after an update.
 
 ## 23. Docker development environment
 
@@ -963,7 +968,7 @@ No screen is ever blank. Async status messages use `aria-live="polite"`.
 - Logout deletes the local database (§9).
 - Login `redirect` param restricted to same-app paths (no open redirect).
 - No `dangerouslySetInnerHTML`; user content rendered as text. Rich-text notes are rendered from their JSON as React elements (`RichTextView`, D42).
-- Content Security Policy: GitHub Pages cannot set headers; a `<meta http-equiv="Content-Security-Policy">` restricting `connect-src` to `'self'` and the Supabase project URL is added in step 11 if it doesn't break the SW/Vite build.
+- Content Security Policy: GitHub Pages cannot set headers; a build-only `<meta http-equiv="Content-Security-Policy">` restricts `connect-src` to `'self'` and the Supabase project origin (§22, D56).
 - Dependencies kept minimal; `npm audit` reviewed when adding packages.
 
 ## 27. Testing

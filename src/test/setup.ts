@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { wipeLocalData } from '@/db/database';
+import { pwaRegister } from './pwaRegisterMock';
 
 // jsdom has no layout; ScrollRestoration calls scrollTo on every navigation.
 window.scrollTo = () => undefined;
@@ -40,3 +41,7 @@ HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
 HTMLMediaElement.prototype.pause = function pause(this: HTMLMediaElement) {
   this.dispatchEvent(new Event('pause'));
 };
+
+afterEach(() => {
+  pwaRegister.reset();
+});

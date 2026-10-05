@@ -92,7 +92,7 @@ describe('sync status (SPEC §15.6)', () => {
     await user.click(await screen.findByRole('button', { name: 'Menu, Sync error' }));
     await user.click(screen.getByRole('button', { name: /Sync error — details/ }));
     const panel = screen.getByRole('dialog', { name: 'Sync errors' });
-    expect(within(panel).getByText('Card “gap”')).toBeInTheDocument();
+    expect(await within(panel).findByText('Card “gap”')).toBeInTheDocument();
     expect(within(panel).getByText('check violation')).toBeInTheDocument();
 
     const calls = sync.mock.calls.length;

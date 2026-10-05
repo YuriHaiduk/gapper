@@ -123,15 +123,15 @@ describe('CardListPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Filter: All cards' }));
     const sheet = await screen.findByRole('dialog', { name: 'Filter cards' });
-    expect(within(sheet).getByRole('radio', { name: /^All\s*6$/ })).toBeChecked();
-    await user.click(within(sheet).getByRole('radio', { name: /^Learning\s*4$/ }));
+    expect(await within(sheet).findByRole('radio', { name: /^All\s*6$/ })).toBeChecked();
+    await user.click(await within(sheet).findByRole('radio', { name: /^Learning\s*4$/ }));
     expect(app.location()).toBe('/cards?status=learning');
     await waitFor(async () => {
       expect(await titles()).toEqual(['word 05', 'word 04', 'word 02', 'word 01']);
     });
 
     // Category counts follow the selected status (faceted).
-    await user.click(within(sheet).getByRole('radio', { name: /^Law\s*2$/ }));
+    await user.click(await within(sheet).findByRole('radio', { name: /^Law\s*2$/ }));
     expect(app.location()).toBe('/cards?status=learning&category=law');
     await waitFor(async () => {
       expect(await titles()).toEqual(['word 02', 'word 01']);
