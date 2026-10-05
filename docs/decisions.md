@@ -24,3 +24,5 @@ Lightweight ADRs. Newest at the bottom. Each entry: date · decision · why · a
 | D18 | 2026-10-05 | No state/data-fetching/UI/form libraries; React context only for auth + sync status | Dexie live queries cover data needs; keep deps minimal | Redux, Zustand, TanStack Query | §20 |
 | D19 | 2026-10-05 | PWA `registerType: 'prompt'` | Never reload under an unsaved form | `autoUpdate` | §22 |
 | D20 | 2026-10-05 | Logout wipes local DB | Private data must not persist after sign-out | Keep cache | §9 |
+| D21 | 2026-10-05 | Extra dev-only tooling: `@testing-library/jest-dom`, `@testing-library/dom`, `@eslint/js`, `globals`, `@types/node` | Standard peers/helpers for the listed ESLint/RTL setup; zero runtime impact | Hand-written matchers | §20 |
+| D22 | 2026-10-05 | ESLint pinned to v9 (not v10); `eslint.config.js` excluded from type-aware lint/typecheck | `eslint-plugin-jsx-a11y` 6.x peer range stops at ESLint 9 and ships no types | Drop jsx-a11y; `--legacy-peer-deps` | §20 |
