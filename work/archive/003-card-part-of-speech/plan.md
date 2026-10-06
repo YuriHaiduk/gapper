@@ -6,7 +6,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · 👤 needs the owner's 
 
 ## Steps
 
-- [~] **01. Optional `type` (part of speech) on cards** — migration + CHECK, Dexie v3, remote column, service normalization, form select, detail/list display; SPEC + D63; tests. 👤 `db push` before deploy, iPhone check after. → [step file](step-01-card-type.md)
+- [x] **01. Optional `type` (part of speech) on cards** — migration + CHECK, Dexie v3, remote column, service normalization, form select, detail/list display; SPEC + D63; tests. 👤 `db push` before deploy, iPhone check after. → [step file](step-01-card-type.md)
 - [x] **02. English dates** — detail page dates always `en-GB` medium (`6 Oct 2026`), not the device locale; no Updated date on the detail page; SPEC §7.5 + D64. → [step file](step-02-english-dates.md)
 
 ## Backlog

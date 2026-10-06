@@ -1,6 +1,6 @@
 # Step 01 — Optional `type` (part of speech) on cards
 
-Status: blocked (waiting for owner)
+Status: done
 Spec: docs/SPEC.md §7.1, §7.4, §7.5, §7.6, §16, §17 · D63
 
 ## Goal
@@ -15,7 +15,7 @@ detail page (under the title) and in the list row (`Noun · Law`).
 - [x] Allow running `npx supabase@2.119.0 db push` + `test db --linked` (migration
       `20261006120000_card_type.sql`) — **before** the frontend is deployed, otherwise card
       pushes fail on the unknown column.
-- [ ] After deploy: check on the iPhone (select in the form, label on the card and in the list).
+- [x] Owner check ("все ок", 2026-10-06): check on the iPhone (select in the form, label on the card and in the list).
 
 ## Tasks
 - [x] Migration `supabase/migrations/20261006120000_card_type.sql` + pgTAP `card_type.test.sql`
@@ -27,7 +27,7 @@ detail page (under the title) and in the list row (`Noun · Law`).
 - [x] Page tests (form, detail, list)
 - [x] SPEC §7.1, §7.4–§7.6, §16.1, §16.2, §17; D63
 - [x] Owner: `db push`
-- [ ] Owner: push to `main` (deploy), iPhone check
+- [x] Owner accepted the step (2026-10-06); push to `main` is a separate owner decision
 
 ## Files
 - `supabase/migrations/20261006120000_card_type.sql`, `supabase/tests/database/card_type.test.sql`
@@ -40,7 +40,7 @@ detail page (under the title) and in the list row (`Noun · Law`).
 ## Verification
 - [x] npm run lint / typecheck / test (286 passed) / build — all green (Docker)
 - [x] `npx supabase@2.119.0 db push` (applied 2026-10-06) + `test db --linked` — 3 files, 61 tests, PASS
-- [ ] Manual check on iPhone
+- [x] Owner manual check: "все ок"
 
 ## Notes / decisions
 - D63: key stored (`phrasal_verb`), label shown (`Phrasal verb`); CHECK in DB; unknown → null in the service.
