@@ -18,7 +18,8 @@ type CardListItemProps = {
 /**
  * Compact list row (SPEC §7.4): title and `part of speech · category` (D63) on the left, the
  * status pill with a delete button under it on the right (D62); notes are not shown. The link
- * covers the row, the delete button sits above it.
+ * covers the row, the delete button sits above it. `isolate` keeps that z-index inside the
+ * row, so the sticky header and its menu stay on top while scrolling.
  */
 export function CardListItem({
   card,
@@ -30,7 +31,7 @@ export function CardListItem({
 }: CardListItemProps) {
   const type = partOfSpeechLabel(card.type);
   return (
-    <li className="relative flex min-h-16 gap-2 rounded-lg border border-neutral-200 px-2.5 py-2 has-[a:hover]:bg-neutral-50 dark:border-neutral-800 dark:has-[a:hover]:bg-neutral-900">
+    <li className="relative isolate flex min-h-16 gap-2 rounded-lg border border-neutral-200 px-2.5 py-2 has-[a:hover]:bg-neutral-50 dark:border-neutral-800 dark:has-[a:hover]:bg-neutral-900">
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
         <Link
           to={`/cards/${card.id}${query ? `?${query}` : ''}`}
