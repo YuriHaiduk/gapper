@@ -172,7 +172,7 @@ Order and emphasis:
 
 Bottom action bar (thumb zone, fixed, safe-area aware): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. The toggle saves at once (§7.2); a failure shows "Couldn't save.".
 
-Header (D44): Back · `Edit` (`/cards/:id/edit?<query>`) · ⋯. Back links to `/cards?<query>` and restores the list's loaded count and scroll position like browser Back (§12). Dates are shown in the device locale (medium date).
+Header (D44): Back · `Edit` (`/cards/:id/edit?<query>`) · ⋯. Back links to `/cards?<query>` and restores the list's loaded count and scroll position like browser Back (§12). Dates are shown in English regardless of the device language, e.g. `6 Oct 2026` (D64), in the device time zone.
 
 States: skeleton until the card and the categories are read locally; "Card not found." + "Back to cards" (`/cards?<query>`) for an unknown or deleted id.
 
