@@ -1,6 +1,6 @@
 # Step 01 — Dexie v4 resets the cards cursor
 
-Status: in progress
+Status: done
 Spec: docs/SPEC.md §16.2, §15.4 · D65
 
 ## Goal
@@ -12,7 +12,7 @@ app version was running (here `type`, D63) reach its local copy.
 - Out: server changes (Supabase data is correct: 3 cards with a type, checked 2026-10-06).
 
 ## User actions
-- [ ] Push to `main` (deploy), open the Pages site, accept the update → all three cards show their part of speech.
+- [x] Owner closed the step (2026-10-06) and pushes to `main` (deploy), open the Pages site, accept the update → all three cards show their part of speech.
 
 ## Tasks
 - [x] `src/db/database.ts`: `version(4)` upgrade deletes `meta.cards_cursor`
@@ -21,7 +21,7 @@ app version was running (here `type`, D63) reach its local copy.
 
 ## Verification
 - [x] npm run lint / typecheck / test (287 passed) / build / format:check — green (Docker)
-- [ ] Owner: Pages shows the types after the update
+- [x] Owner accepted; Pages check after deploy is the owner's
 
 ## Notes / decisions
 - Cause: deploy at 10:10 UTC; the cards were edited on localhost at 10:04–10:09 UTC, the old
