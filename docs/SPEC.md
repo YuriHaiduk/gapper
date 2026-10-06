@@ -126,6 +126,7 @@ The title is trimmed. Notes without any text are stored as `NULL`.
 |---|---|---|---|
 | `title` | yes | 200 | word or phrase, e.g. `burden of proof` |
 | `notes` | no | 5000 chars of text (JSON ≤ 100 kB) | rich text (D42): paragraphs, **bold**, *italic*, bullet and numbered lists; stored as a Tiptap/ProseMirror JSON document |
+| `type` | no | — | part of speech (D63), one of a fixed list stored as a key: `noun` Noun · `verb` Verb · `adjective` Adjective · `adverb` Adverb · `phrasal_verb` Phrasal verb · `idiom` Idiom · `phrase` Phrase · `sentence` Sentence; empty/unknown → `NULL`. Not filterable, not searched, no management page |
 | `category_id` | no in UI | — | empty → `Other` (enforced in service **and** DB trigger) |
 | `status` | — | — | `learning` (default) or `learned` |
 | audio | no | 60 s | see §10 |
@@ -157,13 +158,13 @@ Compact row (≈ 64–72 px), each in its own bordered box (`rounded-lg`, `neutr
 - **Title** (semibold, the link to `/cards/:id?<context>`; the link's hit area stretches across the whole row), with the status pill right-aligned on the same line.
 - **Delete** (D62): a trash icon button (44 px target, labelled "Delete “<title>”") under the status pill on the right, above the row link. Same confirmation and soft delete as on the edit page (§7.3); the row disappears at once; a failure shows "Couldn't save." above the list.
 - Notes are **not** shown in the list (owner's choice) — only on the detail page. Search still matches them (§11.3).
-- Meta line: category name · 🔊 icon if audio exists · dot if the card has unsynced local changes.
+- Meta line: part of speech label (if set) `·` category name (e.g. `Noun · Law`) · 🔊 icon if audio exists · dot if the card has unsynced local changes.
 - Created date is not shown in the list (shown on the detail page).
 
 ### 7.5 Card detail page
 
 Order and emphasis:
-1. Title — largest text (≈ 28–32 px), wraps; status pill right-aligned next to it.
+1. Title — largest text (≈ 28–32 px), wraps; status pill right-aligned next to it. Under the title, left-aligned, small muted text (no chip): the part of speech label (e.g. `Noun`), hidden if not set (D63).
 2. Notes — rendered rich text (paragraphs, bold, italic, lists), normal size. Rendered as React elements from the JSON (`RichTextView`), never as HTML. Hidden if empty.
 3. Audio player — large Play/Pause button (≥ 56 px) + progress. Hidden if no audio. If audio is not cached and the device is offline: "Audio unavailable offline".
 4. Category chip.
@@ -179,13 +180,13 @@ States: skeleton until the card and the categories are read locally; "Card not f
 
 `/cards/new` and `/cards/:id/edit` share `CardFormPage`. The list context (`?status&category&q`) stays in the form's URL: the FAB links to `/cards/new?<list query>`, and the header Back link returns to `/cards?<query>` (create) or `/cards/:id?<query>` (edit).
 
-- Fields, top to bottom: Title, **Pronunciation** (audio recorder, §10.1; right under the title so the word is recorded as soon as it is typed, D46), **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded and warmed in the background once the app shell mounts; if its chunk can't load — offline before it was ever fetched — the field shows the notes read-only with "The notes editor couldn't load…" + Retry, and the rest of the form still saves with the notes unchanged, D54), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
+- Fields, top to bottom: Title, **Pronunciation** (audio recorder, §10.1; right under the title so the word is recorded as soon as it is typed, D46), **Part of speech** (native `<select>`: a blank `—` option, then the full labels from §7.1, D63), **Notes** (rich-text editor, D42/D43: toolbar Bold · Italic · Bullet list · Numbered list · Undo · Redo; markdown-style shortcuts like `**bold**` and `- ` also work; the editor is lazy-loaded and warmed in the background once the app shell mounts; if its chunk can't load — offline before it was ever fetched — the field shows the notes read-only with "The notes editor couldn't load…" + Retry, and the rest of the form still saves with the notes unchanged, D54), Category (native `<select>`, `Other` last), and Status (edit only; two radio buttons, Learning / Learned).
 - **Category select** has no blank option (D37). Create defaults to the context category (`?category=` slug) or `Other`. To clear a card's category, pick `Other`. The service also maps an empty, unknown or deleted category id to `Other`.
 - **New cards** are always `learning` (D38). Status changes on the edit form follow §7.2.
 - Validation runs on submit (§7.1). Errors appear under the field, and the first invalid field gets focus. The duplicate-title hint shows under Title while typing.
 - Sticky bottom action bar: **Save**, plus **Save & add another** on create. Buttons show a pending state while saving. An unexpected failure shows "Couldn't save."
 - **After Save** (D39): `/cards/:id?<query>` with `replace`, so Back from the card returns to where the form was opened, not to the form. Saving an unchanged card is a no-op (no new `updated_at`, no outbox entry).
-- **Save & add another** (D40) stays on the form. It clears the text fields, keeps the selected category, focuses Title and announces "Saved “abandon”." (`role="status"`).
+- **Save & add another** (D40) stays on the form. It clears the text fields and the part of speech, keeps the selected category, focuses Title and announces "Saved “abandon”." (`role="status"`).
 - **Delete card** (edit only): native confirm (§7.3, D32), then soft delete, then `/cards?<query>` with `replace`.
 - **Unsaved changes** (D41): leaving a form whose values differ from what it opened with (or from the reset form after "Save & add another") asks "Discard unsaved changes?" (native confirm). This covers the header Back, browser/iOS Back, the duplicate-hint link and any other in-app link; Cancel keeps the user on the form with the typed values. Reload/tab close triggers the browser's own `beforeunload` prompt (not reliable on iOS). Save, Save & add another and a confirmed Delete never ask.
 - Edit of a missing or deleted card: "Card not found." + "Back to cards". The form is initialized once per card, so a sync landing mid-edit does not overwrite what the user typed (the user's later save wins via LWW).
@@ -454,6 +455,7 @@ export type Card = {
   user_id: string;
   title: string;
   notes: RichText | null;       // { type: 'doc', content: RichNode[] } — Tiptap JSON (D42)
+  type: PartOfSpeech | null;    // 'noun' | 'verb' | … (domain/partsOfSpeech.ts, D63)
   category_id: string;
   status: CardStatus;
   audio_path: string | null;
@@ -473,7 +475,7 @@ export type CardFilter = {
 
 All timestamps are normalized with `new Date(x).toISOString()` when read from Supabase, so string comparison in IndexedDB indexes equals chronological order.
 
-### 16.2 IndexedDB (Dexie) schema — version 2
+### 16.2 IndexedDB (Dexie) schema — version 3
 
 Database name: `gapper`.
 
@@ -485,7 +487,7 @@ Database name: `gapper`.
 | `outbox` | `++id, [entity+entity_id]` | §15.2 |
 | `meta` | `key` | `{ key, value }` — `user_id`, `cards_cursor`, `categories_cursor`, `last_sync_at`, `initial_sync_done` |
 
-Version 2 (no index change) merges the v1 fields `translation`, `example_sentence`, `example_sentence_translation` into `notes` on upgrade (one paragraph per line, like the SQL migration) and recomputes `_search`.
+Version 2 (no index change) merges the v1 fields `translation`, `example_sentence`, `example_sentence_translation` into `notes` on upgrade (one paragraph per line, like the SQL migration) and recomputes `_search`. Version 3 (no index change) sets `type = null` on existing cards (D63).
 
 Locally, soft-deleted rows are kept only until their tombstone is pushed, then removed. All queries exclude `deleted_at != null`.
 
@@ -527,6 +529,7 @@ create table public.vocabulary_cards (
   user_id                       uuid not null default auth.uid() references auth.users (id) on delete cascade,
   title                         text not null check (char_length(btrim(title)) between 1 and 200),
   notes                         jsonb,  -- migration 20261005160000 (D42), replaced translation/example columns
+  type                          text,   -- migration 20261006120000 (D63), part of speech key
   category_id                   uuid not null,
   status                        text not null default 'learning' check (status in ('learning', 'learned')),
   audio_path                    text,
@@ -540,6 +543,8 @@ create table public.vocabulary_cards (
   constraint cards_learned_at_ck check ((status = 'learned') = (learned_at is not null)),
   constraint cards_notes_ck check (notes is null or (jsonb_typeof(notes) = 'object'
     and notes ->> 'type' = 'doc' and octet_length(notes::text) <= 100000)),
+  constraint cards_type_ck check (type is null or type in ('noun', 'verb', 'adjective',
+    'adverb', 'phrasal_verb', 'idiom', 'phrase', 'sentence')),
   constraint cards_audio_path_ck check (
     audio_path is null or audio_path like (user_id::text || '/' || id::text || '/%')
   )

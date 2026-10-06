@@ -1,4 +1,6 @@
 /** Domain types (SPEC §16.1). Timestamps are ISO-8601 UTC strings with ms precision. */
+import type { PartOfSpeech } from './partsOfSpeech';
+
 export type CardStatus = 'learning' | 'learned';
 
 export type Category = {
@@ -32,6 +34,8 @@ export type Card = {
   title: string;
   /** Free-form rich text: examples, translations… (D42). */
   notes: RichText | null;
+  /** Part of speech (D63). */
+  type: PartOfSpeech | null;
   category_id: string;
   status: CardStatus;
   audio_path: string | null;

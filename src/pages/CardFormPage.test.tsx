@@ -109,6 +109,7 @@ describe('CardFormPage', () => {
       await user.type(await screen.findByLabelText('Title'), 'tort');
       await screen.findByRole('textbox', { name: 'Notes' });
       await user.click(screen.getByRole('button', { name: 'Bullet list' }));
+      await user.selectOptions(screen.getByLabelText('Part of speech'), 'Noun');
       await user.selectOptions(screen.getByLabelText('Category'), 'Law');
       await user.click(screen.getByRole('button', { name: 'Save & add another' }));
 
@@ -116,9 +117,10 @@ describe('CardFormPage', () => {
       expect(screen.getByLabelText('Title')).toHaveValue('');
       expect(screen.getByLabelText('Title')).toHaveFocus();
       expect(screen.getByRole('textbox', { name: 'Notes' }).querySelector('ul')).toBeNull();
+      expect(screen.getByLabelText('Part of speech')).toHaveValue('');
       expect(screen.getByLabelText('Category')).toHaveValue(LAW.id);
       expect(app.location()).toBe('/cards/new');
-      expect(await onlyCard()).toMatchObject({ title: 'tort', category_id: LAW.id });
+      expect(await onlyCard()).toMatchObject({ title: 'tort', type: 'noun', category_id: LAW.id });
     });
   });
 
@@ -225,6 +227,26 @@ describe('CardFormPage', () => {
       expect(richTextToPlain(card?.notes)).toBe('покинути');
       expect(card?.created_at).toBe('2026-01-01T00:00:00.000Z');
       expect(card?.updated_at).not.toBe('2026-01-01T00:00:00.000Z');
+    });
+
+    it('changes and clears the part of speech (D63)', async () => {
+      const user = userEvent.setup();
+      await applyRemoteCard(makeCard({ id: 'c2', title: 'go on', type: 'verb' }));
+      const app = renderApp('/cards/c2/edit');
+      const select = await screen.findByLabelText('Part of speech');
+      expect(select).toHaveValue('verb');
+      await user.selectOptions(select, 'Phrasal verb');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(async () => {
+        expect((await getCard('c2'))?.type).toBe('phrasal_verb');
+      });
+
+      await app.router.navigate('/cards/c2/edit');
+      await user.selectOptions(await screen.findByLabelText('Part of speech'), '—');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(async () => {
+        expect((await getCard('c2'))?.type).toBeNull();
+      });
     });
 
     it('changes the status and sets learned_at', async () => {

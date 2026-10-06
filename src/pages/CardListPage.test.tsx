@@ -104,6 +104,14 @@ describe('CardListPage', () => {
     expect(row.queryByRole('img', { name: 'Not synced yet' })).not.toBeInTheDocument();
   });
 
+  it('shows the part of speech before the category (D63)', async () => {
+    await seed(1, () => ({ category_id: LAW.id, type: 'phrasal_verb' }));
+    renderApp('/cards');
+    const link = await screen.findByRole('link', { name: 'word 00' });
+    const row = within(link.closest('li') as HTMLElement);
+    expect(row.getByText('Phrasal verb · Law')).toBeInTheDocument();
+  });
+
   it('marks cards with unsynced changes', async () => {
     await saveCard(makeCard({ id: 'local', title: 'local' }));
     renderApp('/cards');

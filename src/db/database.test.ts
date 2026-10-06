@@ -53,3 +53,35 @@ describe('Dexie v1 → v2 upgrade (D42)', () => {
     expect((await db.cards.get('b'))?.notes).toBeNull();
   });
 });
+
+describe('Dexie v2 → v3 upgrade (D63)', () => {
+  afterEach(async () => {
+    if (!db.isOpen()) await db.open();
+  });
+
+  it('gives existing cards an explicit null part of speech', async () => {
+    db.close();
+    await Dexie.delete('gapper');
+    const v2 = new Dexie('gapper');
+    v2.version(2).stores({
+      cards: 'id, [created_at+id], status, category_id',
+      categories: 'id, slug',
+      audio_blobs: 'path, card_id',
+      outbox: '++id, [entity+entity_id]',
+      meta: 'key',
+    });
+    await v2.table('cards').add({
+      id: 'a',
+      title: 'abandon',
+      notes: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      _search: 'abandon',
+    });
+    v2.close();
+
+    await db.open();
+    const a = await db.cards.get('a');
+    expect(a).toHaveProperty('type', null);
+    expect(a?.title).toBe('abandon');
+  });
+});

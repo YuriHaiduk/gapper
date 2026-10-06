@@ -2,6 +2,7 @@ import { useParams } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RichTextView } from '@/components/ui/RichTextView';
 import { formatDate } from '@/domain/dates';
+import { partOfSpeechLabel } from '@/domain/partsOfSpeech';
 import type { Card } from '@/domain/types';
 import { CardAudio } from '@/features/audio/CardAudio';
 import { AdjacentNav } from '@/features/cards/AdjacentNav';
@@ -34,10 +35,14 @@ function DateRow({ label, iso }: { label: string; iso: string }) {
 }
 
 function CardDetails({ card, categoryName }: { card: Card; categoryName: string | undefined }) {
+  const type = partOfSpeechLabel(card.type);
   return (
     <article className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="min-w-0 text-3xl leading-tight font-bold break-words">{card.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-3xl leading-tight font-bold break-words">{card.title}</h1>
+          {type && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{type}</p>}
+        </div>
         <span className="mt-2">
           <StatusPill status={card.status} />
         </span>

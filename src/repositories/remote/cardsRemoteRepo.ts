@@ -8,6 +8,7 @@ export const cardsRemoteRepo = createTableRemote<Card>({
     'user_id',
     'title',
     'notes',
+    'type',
     'category_id',
     'status',
     'audio_path',

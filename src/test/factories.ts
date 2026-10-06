@@ -37,6 +37,7 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     user_id: USER_ID,
     title: 'abandon',
     notes: plainToRichText('покинути'),
+    type: null,
     category_id: OTHER_ID,
     status: 'learning',
     audio_path: null,

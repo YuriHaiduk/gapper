@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { SpeakerIcon, TrashIcon } from '@/components/ui/icons';
 import { FOCUS_RING } from '@/components/ui/styles';
+import { partOfSpeechLabel } from '@/domain/partsOfSpeech';
 import type { Card } from '@/domain/types';
 import { StatusPill } from './StatusPill';
 
@@ -15,9 +16,9 @@ type CardListItemProps = {
 };
 
 /**
- * Compact list row (SPEC §7.4): title and category on the left, the status pill with a delete
- * button under it on the right (D62); notes are not shown. The link covers the row, the
- * delete button sits above it.
+ * Compact list row (SPEC §7.4): title and `part of speech · category` (D63) on the left, the
+ * status pill with a delete button under it on the right (D62); notes are not shown. The link
+ * covers the row, the delete button sits above it.
  */
 export function CardListItem({
   card,
@@ -27,6 +28,7 @@ export function CardListItem({
   onOpen,
   onDelete,
 }: CardListItemProps) {
+  const type = partOfSpeechLabel(card.type);
   return (
     <li className="relative flex min-h-16 gap-2 rounded-lg border border-neutral-200 px-2.5 py-2 has-[a:hover]:bg-neutral-50 dark:border-neutral-800 dark:has-[a:hover]:bg-neutral-900">
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
@@ -38,7 +40,9 @@ export function CardListItem({
           {card.title}
         </Link>
         <p className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-          {categoryName && <span className="truncate">{categoryName}</span>}
+          {(type ?? categoryName) && (
+            <span className="truncate">{[type, categoryName].filter(Boolean).join(' · ')}</span>
+          )}
           {card.audio_path && (
             <span role="img" aria-label="Has audio">
               <SpeakerIcon />

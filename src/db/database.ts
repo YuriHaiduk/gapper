@@ -58,6 +58,23 @@ export class GapperDb extends Dexie {
             card._search = buildSearchText({ title: card.title ?? '', notes: card.notes });
           }),
       );
+    // v3 (D63): optional part of speech; existing cards get an explicit null.
+    this.version(3)
+      .stores({
+        cards: 'id, [created_at+id], status, category_id',
+        categories: 'id, slug',
+        audio_blobs: 'path, card_id',
+        outbox: '++id, [entity+entity_id]',
+        meta: 'key',
+      })
+      .upgrade((tx) =>
+        tx
+          .table<Partial<LocalCard>>('cards')
+          .toCollection()
+          .modify((card: Partial<LocalCard>) => {
+            card.type ??= null;
+          }),
+      );
   }
 }
 

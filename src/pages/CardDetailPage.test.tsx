@@ -76,6 +76,19 @@ describe('CardDetailPage', () => {
     expect(screen.getByText('Learned on')).toBeInTheDocument();
   });
 
+  it('shows the part of speech under the title, none when unset (D63)', async () => {
+    await applyRemoteCard(makeCard({ id: 'c1', type: 'noun' }));
+    await applyRemoteCard(makeCard({ id: 'c2', title: 'plain' }));
+    const app = renderApp('/cards/c1');
+    const title = await screen.findByRole('heading', { level: 1, name: 'abandon' });
+    expect(title.compareDocumentPosition(screen.getByText('Noun'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    await app.router.navigate('/cards/c2');
+    await screen.findByRole('heading', { level: 1, name: 'plain' });
+    expect(screen.queryByText('Noun')).not.toBeInTheDocument();
+  });
+
   it('hides empty notes and the learned date of a learning card', async () => {
     await applyRemoteCard(makeCard({ id: 'c1', notes: null }));
     renderApp('/cards/c1');

@@ -42,6 +42,7 @@ describe('cardService (T4)', () => {
       expect(card).toMatchObject({
         title: 'abandon',
         notes: null,
+        type: null,
         category_id: OTHER_ID,
         status: 'learning',
         learned_at: null,
@@ -64,6 +65,15 @@ describe('cardService (T4)', () => {
       });
       const empty = { type: 'doc' as const, content: [{ type: 'paragraph' }] };
       expect((await createCard({ title: 'x', notes: empty })).notes).toBeNull();
+    });
+
+    it('stores a known part of speech; empty or unknown → null (D63)', async () => {
+      expect((await createCard({ title: 'x', type: 'phrasal_verb' })).type).toBe('phrasal_verb');
+      for (const type of [null, undefined, '', 'Noun', 'conjunction']) {
+        // Values from outside the typed form (old rows, the server) are normalized too.
+        const input = { title: 'x', type: type as never };
+        expect((await createCard(input)).type).toBeNull();
+      }
     });
 
     it('AC-36: empty, unknown or deleted category → Other', async () => {
@@ -116,6 +126,14 @@ describe('cardService (T4)', () => {
       });
       expect(card.updated_at).toBe(T0);
       expect(await outbox()).toEqual([]);
+    });
+
+    it('a part-of-speech-only change is saved (D63)', async () => {
+      const input = { title: 'abandon', notes: plainToRichText('покинути'), category_id: LAW.id };
+      const card = await updateCard('c1', { ...input, type: 'verb' });
+      expect(card).toMatchObject({ type: 'verb', updated_at: NOW });
+      expect(await outbox()).toEqual(['card:upsert:c1']);
+      expect((await updateCard('c1', { ...input, type: null })).type).toBeNull();
     });
 
     it('applies the learned_at rules when the status changes', async () => {

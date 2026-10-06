@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/Button';
 import { ErrorText } from '@/components/ui/ErrorText';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
+import {
+  isPartOfSpeech,
+  PARTS_OF_SPEECH,
+  partOfSpeechLabel,
+  type PartOfSpeech,
+} from '@/domain/partsOfSpeech';
 import { sameRichText } from '@/domain/richText';
 import type { AudioChange, Card, CardStatus, Category, RichText } from '@/domain/types';
 import { validateCardInput, type CardFieldErrors } from '@/domain/validation';
@@ -17,6 +23,7 @@ import { StatusField } from './StatusField';
 export type CardFormValues = {
   title: string;
   notes: RichText | null;
+  type: PartOfSpeech | null;
   category_id: string;
   status: CardStatus;
   /** What saving does with the recording (SPEC §10.3). */
@@ -32,6 +39,7 @@ function sameAudio(a: AudioChange, b: AudioChange): boolean {
 function sameValues(a: CardFormValues, b: CardFormValues): boolean {
   return (
     a.title === b.title &&
+    a.type === b.type &&
     a.category_id === b.category_id &&
     a.status === b.status &&
     sameRichText(a.notes, b.notes) &&
@@ -184,6 +192,22 @@ export function CardForm({
         onBusyChange={setRecording}
         disabled={pending}
       />
+      <Select
+        label="Part of speech"
+        value={values.type ?? ''}
+        disabled={pending}
+        onChange={(event) => {
+          const { value } = event.target;
+          set('type', isPartOfSpeech(value) ? value : null);
+        }}
+      >
+        <option value="">—</option>
+        {PARTS_OF_SPEECH.map((type) => (
+          <option key={type} value={type}>
+            {partOfSpeechLabel(type)}
+          </option>
+        ))}
+      </Select>
       <NotesField
         key={resetCount}
         label="Notes"

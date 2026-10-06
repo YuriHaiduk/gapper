@@ -1,5 +1,6 @@
 import { audioPath } from '@/domain/audio';
 import { learnedAtFor } from '@/domain/cardStatus';
+import { isPartOfSpeech, type PartOfSpeech } from '@/domain/partsOfSpeech';
 import { normalizeRichText, sameRichText } from '@/domain/richText';
 import { nowIso } from '@/domain/timestamps';
 import type { AudioChange, Card, CardStatus, RecordedAudio } from '@/domain/types';
@@ -14,13 +15,17 @@ import { getCategory, getOtherCategory } from '@/repositories/local/categoriesLo
 import { getMeta } from '@/repositories/local/metaRepo';
 import { CardValidationError, NotFoundError } from './errors';
 
-/** Form values (SPEC §7.1). Notes without text → null; empty/unknown category → Other. */
+/**
+ * Form values (SPEC §7.1). Notes without text → null; empty/unknown category → Other;
+ * empty/unknown part of speech → null.
+ */
 export type CardInput = CardTextInput & {
+  type?: PartOfSpeech | null;
   category_id?: string | null;
   status?: CardStatus;
 };
 
-type CardFields = Pick<Card, 'title' | 'notes' | 'category_id'>;
+type CardFields = Pick<Card, 'title' | 'notes' | 'type' | 'category_id'>;
 
 /** A non-deleted category id, falling back to `Other` (mirrors the DB trigger, SPEC §7.1). */
 async function resolveCategoryId(categoryId: string | null | undefined): Promise<string> {
@@ -39,6 +44,7 @@ async function normalize(input: CardInput): Promise<CardFields> {
   return {
     title: input.title.trim(),
     notes: normalizeRichText(input.notes),
+    type: isPartOfSpeech(input.type) ? input.type : null,
     category_id: await resolveCategoryId(input.category_id),
   };
 }
@@ -112,6 +118,7 @@ export async function updateCard(
     audio.kind === 'replace' || (audio.kind === 'remove' && card.audio_path !== null);
   const unchanged =
     fields.title === card.title &&
+    fields.type === card.type &&
     fields.category_id === card.category_id &&
     sameRichText(fields.notes, card.notes) &&
     status === card.status &&
