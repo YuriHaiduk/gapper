@@ -85,3 +85,38 @@ describe('Dexie v2 → v3 upgrade (D63)', () => {
     expect(a?.title).toBe('abandon');
   });
 });
+
+describe('Dexie v3 → v4 upgrade (D65)', () => {
+  afterEach(async () => {
+    if (!db.isOpen()) await db.open();
+  });
+
+  it('forgets the cards cursor only, keeping the cards and other meta', async () => {
+    db.close();
+    await Dexie.delete('gapper');
+    const v3 = new Dexie('gapper');
+    v3.version(3).stores({
+      cards: 'id, [created_at+id], status, category_id',
+      categories: 'id, slug',
+      audio_blobs: 'path, card_id',
+      outbox: '++id, [entity+entity_id]',
+      meta: 'key',
+    });
+    await v3.table('cards').add({ id: 'a', title: 'abandon', type: null, _search: 'abandon' });
+    await v3.table('meta').bulkAdd([
+      { key: 'cards_cursor', value: '2026-10-06T10:09:09.958Z' },
+      { key: 'categories_cursor', value: '2026-10-05T17:00:00.000Z' },
+      { key: 'initial_sync_done', value: true },
+    ]);
+    v3.close();
+
+    await db.open();
+    expect(await db.meta.get('cards_cursor')).toBeUndefined();
+    expect(await db.meta.get('categories_cursor')).toBeDefined();
+    expect(await db.meta.get('initial_sync_done')).toEqual({
+      key: 'initial_sync_done',
+      value: true,
+    });
+    expect(await db.cards.get('a')).toBeDefined();
+  });
+});

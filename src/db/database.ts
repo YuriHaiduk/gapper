@@ -75,6 +75,18 @@ export class GapperDb extends Dexie {
             card.type ??= null;
           }),
       );
+    // v4 (D65): forget the cards pull cursor, so the next sync pulls every card again. An app
+    // version from before a new column pulled rows without it and moved the cursor past them.
+    // Rule: a new synced column → a Dexie version that deletes that table's cursor.
+    this.version(4)
+      .stores({
+        cards: 'id, [created_at+id], status, category_id',
+        categories: 'id, slug',
+        audio_blobs: 'path, card_id',
+        outbox: '++id, [entity+entity_id]',
+        meta: 'key',
+      })
+      .upgrade((tx) => tx.table<MetaRow, MetaRow['key']>('meta').delete('cards_cursor'));
   }
 }
 

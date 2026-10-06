@@ -12,6 +12,7 @@ Behavior is specified in `docs/SPEC.md` §14–§19. These are the implementatio
 ## Dexie rules
 
 - One database class in `src/db/database.ts`; name `gapper`. Each schema change = new `db.version(n)` with an upgrade function if data must be migrated. **Never edit an existing version block** once released.
+- **A new synced column** (a field pulled from Supabase) also needs a Dexie version whose upgrade deletes that table's pull cursor (`cards_cursor` / `categories_cursor`), so every device pulls the table again (D65). Otherwise an app version from before the column pulls rows without it and moves the cursor past them; the next version never sees the value.
 - Index only what queries need. Compound index for list ordering: `[created_at+id]`; filter indexes on `status`, `category_id`.
 - Use `useLiveQuery` (from `dexie-react-hooks`) inside hooks, never in pages directly.
 - Wrap multi-table writes in `db.transaction('rw', …)`.

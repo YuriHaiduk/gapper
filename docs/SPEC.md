@@ -475,7 +475,7 @@ export type CardFilter = {
 
 All timestamps are normalized with `new Date(x).toISOString()` when read from Supabase, so string comparison in IndexedDB indexes equals chronological order.
 
-### 16.2 IndexedDB (Dexie) schema — version 3
+### 16.2 IndexedDB (Dexie) schema — version 4
 
 Database name: `gapper`.
 
@@ -487,7 +487,7 @@ Database name: `gapper`.
 | `outbox` | `++id, [entity+entity_id]` | §15.2 |
 | `meta` | `key` | `{ key, value }` — `user_id`, `cards_cursor`, `categories_cursor`, `last_sync_at`, `initial_sync_done` |
 
-Version 2 (no index change) merges the v1 fields `translation`, `example_sentence`, `example_sentence_translation` into `notes` on upgrade (one paragraph per line, like the SQL migration) and recomputes `_search`. Version 3 (no index change) sets `type = null` on existing cards (D63).
+Version 2 (no index change) merges the v1 fields `translation`, `example_sentence`, `example_sentence_translation` into `notes` on upgrade (one paragraph per line, like the SQL migration) and recomputes `_search`. Version 3 (no index change) sets `type = null` on existing cards (D63). Version 4 (no index change) deletes `cards_cursor`, so the next sync pulls every card again (D65); every future synced column needs the same reset of its table's cursor.
 
 Locally, soft-deleted rows are kept only until their tombstone is pushed, then removed. All queries exclude `deleted_at != null`.
 
