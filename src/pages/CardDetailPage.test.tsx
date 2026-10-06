@@ -72,7 +72,7 @@ describe('CardDetailPage', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
       );
     }
-    expect(screen.getByText('Updated')).toBeInTheDocument();
+    expect(screen.queryByText('Updated')).not.toBeInTheDocument();
     expect(screen.getByText('Learned on')).toBeInTheDocument();
   });
 

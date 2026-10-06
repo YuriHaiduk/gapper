@@ -60,7 +60,6 @@ function CardDetails({ card, categoryName }: { card: Card; categoryName: string 
       )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400">
         <DateRow label="Created" iso={card.created_at} />
-        <DateRow label="Updated" iso={card.updated_at} />
         {card.learned_at && <DateRow label="Learned on" iso={card.learned_at} />}
       </dl>
     </article>

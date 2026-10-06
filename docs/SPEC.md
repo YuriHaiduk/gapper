@@ -168,7 +168,7 @@ Order and emphasis:
 2. Notes — rendered rich text (paragraphs, bold, italic, lists), normal size. Rendered as React elements from the JSON (`RichTextView`), never as HTML. Hidden if empty.
 3. Audio player — large Play/Pause button (≥ 56 px) + progress. Hidden if no audio. If audio is not cached and the device is offline: "Audio unavailable offline".
 4. Category chip.
-5. Metadata (small, muted): Created, Updated, Learned on (if learned).
+5. Metadata (small, muted): Created, Learned on (if learned). The updated date is not shown (owner, 2026-10-06).
 
 Bottom action bar (thumb zone, fixed, safe-area aware): `← prev-title` · status toggle (`Mark as learned` / `Move to learning`) · `next-title →`. The toggle saves at once (§7.2); a failure shows "Couldn't save.".
 
